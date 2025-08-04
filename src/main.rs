@@ -32,12 +32,15 @@ fn main() {
 
   {
     let mut back_locked = win.get_lock();
-    back_locked.set_str(x_center, y_center - 3, "R U S T", style![Attr::BOLD, Color::Fg24(96)], Align::Center);
-    back_locked.set_str(x_center, y_center - 2, "T E T R I S", style![Attr::BOLD, Color::Fg24(96)], Align::Center);
+    back_locked.set_str(x_center, y_center - 4, r" _____ _____ _____ ____  ___ ____ ", style![Attr::BOLD, Color::Fg24(96)], Align::Center);
+    back_locked.set_str(x_center, y_center - 3, r"|_   _| ____|_   _|  _ \|_ _/ ___| ", style![Attr::BOLD, Color::Fg24(96)], Align::Center);
+    back_locked.set_str(x_center, y_center - 2, r"  | | |  _|   | | | |_) || |\___ \ ", style![Attr::BOLD, Color::Fg24(96)], Align::Center);
+    back_locked.set_str(x_center, y_center - 1, r"  | | | |___  | | |  _ < | | ___) |", style![Attr::BOLD, Color::Fg24(96)], Align::Center);
+    back_locked.set_str(x_center, y_center - 0, r"  |_| |_____| |_| |_| \_\___|____/", style![Attr::BOLD, Color::Fg24(96)], Align::Center);
     back_locked.set_border(style![Attr::NORMAL]);
   }
 
-  thread::sleep(time::Duration::from_secs(1));
+  thread::sleep(time::Duration::from_secs(2));
 
   let mut field_frame = Framebuffer::new(FIELD_WIDTH * 2 + 2, FIELD_HEIGHT + 2);
   let mut holding_frame = Framebuffer::new(12, 6);
@@ -182,7 +185,7 @@ fn main() {
       back_locked.set_border(style![Attr::NORMAL]);
       back_locked.set_str(x_center, y_center, "G A M E  O V E R", style![Attr::BOLD, Color::Fg24(196)], Align::Center);
     }
-    thread::sleep(time::Duration::from_secs(3));
+    thread::sleep(time::Duration::from_secs(2));
   }
 
   key_listener.stop().expect("Failed to stop key listener");
