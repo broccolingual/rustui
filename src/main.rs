@@ -1,4 +1,3 @@
-use core::panic;
 use std::{thread, time};
 use rcurses::*;
 
@@ -11,16 +10,16 @@ use field::*;
 const RENDERING_RATE: time::Duration = time::Duration::from_millis(15); // ms
 const INPUT_CAPTURING_RATE: time::Duration = time::Duration::from_millis(15); // ms
 
-fn main() {
-  let mut win = Window::new().expect("Failed to create window");
-  win.init().expect("Failed to initialize terminal");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+  let mut win = Window::new()?;
+  win.init()?;
   let fps_rx = win.start(RENDERING_RATE);
   let (mut key_listener, key_rx) = KeyListener::new(INPUT_CAPTURING_RATE);
 
   if win.width < 60 || win.height < 30 {
-      key_listener.stop().expect("Failed to stop key listener");
-      win.end().expect("Failed to cleanup terminal");
-      panic!("Window size is too small. Minimum size is 60x30.");
+      key_listener.stop()?;
+      win.end()?;
+      return Err(Box::from("Window size is too small. Minimum size is 60x30."));
   }
 
   let x_center = win.width / 2;
@@ -188,6 +187,7 @@ fn main() {
     thread::sleep(time::Duration::from_secs(2));
   }
 
-  key_listener.stop().expect("Failed to stop key listener");
-  win.end().expect("Failed to cleanup terminal");
+  key_listener.stop()?;
+  win.end()?;
+  Ok(())
 }
