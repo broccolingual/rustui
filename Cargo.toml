@@ -1,7 +1,8 @@
 [package]
-name = "rcurses"
+name = "rust-tetris"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-nix = { version = "0.30.1", features = ["term"] }
+rcurses = { path = "./lib" }
+rand = "0.8"
