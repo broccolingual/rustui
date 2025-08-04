@@ -44,7 +44,8 @@ fn main() {
 
   let init_pos = Pos::new((FIELD_WIDTH / 2) as i32, 2);
   let mut field = get_field();
-  let mut current_block = Block::new_random(init_pos);
+  let mut random_block_pool = vec![];
+  let mut current_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
   let mut holding_block: Option<Block> = None;
   let drop_counter_max = 100; // Adjust this value to control the drop speed
   let mut drop_counter = 0;
@@ -68,7 +69,7 @@ fn main() {
           if holding_block.is_none() {
             current_block.init(init_pos);
             holding_block = Some(current_block);
-            current_block = Block::new_random(init_pos);
+            current_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
           } else {
             let temp = holding_block.take().unwrap();
             holding_block = Some(current_block);
@@ -91,7 +92,7 @@ fn main() {
             if !field.set_block(&current_block) {
               break;
             }
-            current_block = Block::new_random(init_pos);
+            current_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
           }
         }
         Key::ArrowRight => {
@@ -118,7 +119,7 @@ fn main() {
         if !field.set_block(&current_block) {
           break;
         }
-        current_block = Block::new_random(init_pos);
+        current_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
       }
     }
     
@@ -133,7 +134,7 @@ fn main() {
     field_frame.clear();
     field_frame.set_border(style![Attr::NORMAL]);
     field_frame.set_color(Color::Bg(0));
-    field_frame.set_str(field_frame.width / 2, 0, "FIELD", style![Attr::BOLD], Align::Center);
+    field_frame.set_str(0, 0, "                      ", style![Attr::BOLD], Align::Left);
     for y in 0..FIELD_HEIGHT {
       for x in 0..FIELD_WIDTH {
         let block_type = field.get_block(x, y);
@@ -162,7 +163,7 @@ fn main() {
       back_locked.clear();
       back_locked.set_border(style![Attr::NORMAL]);
       back_locked.combine(&field_frame, x_center - field_frame.width / 2, y_center - field_frame.height / 2);
-      back_locked.combine(&holding_frame, x_center + field_frame.width / 2 + 2, y_center - field_frame.height / 2);
+      back_locked.combine(&holding_frame, x_center + field_frame.width / 2 + 2, y_center - field_frame.height / 2 + 1);
       back_locked.combine(&info_frame, 2, 1);
     }
 

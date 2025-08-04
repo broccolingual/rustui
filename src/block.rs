@@ -22,10 +22,15 @@ impl Default for BlockType {
 }
 
 impl BlockType {
-  pub fn get_random() -> Self {
-    let types = [BlockType::I, BlockType::O, BlockType::S, BlockType::Z, BlockType::J, BlockType::L, BlockType::T];
-    let idx = rand::random::<usize>() % types.len();
-    types[idx]
+  pub fn get_random_from_pool(pool: &mut Vec<BlockType>) -> Self {
+    if pool.is_empty() {
+      pool.extend(vec![
+        BlockType::I, BlockType::O, BlockType::S, BlockType::Z,
+        BlockType::J, BlockType::L, BlockType::T,
+      ]);
+    }
+    let idx = rand::random::<usize>() % pool.len();
+    pool.remove(idx)
   }
 
   pub fn get_relative_positions(&self) -> [Pos; 3] {
@@ -79,14 +84,6 @@ impl Block {
         }
     }
 
-    pub fn new_random(center_pos: Pos) -> Self {
-        Self {
-            center_pos,
-            block_type: BlockType::get_random(),
-            rotation: 0,
-        }
-    }
-
     pub fn init(&mut self, pos: Pos) {
         self.center_pos = pos;
         self.rotation = 0;
@@ -102,12 +99,20 @@ impl Block {
 
     pub fn get_relative_positions(&self) -> [Pos; 4] {
         let relative_positions = self.block_type.get_relative_positions();
+        if self.block_type == BlockType::O { // Oブロックは回転しないのでそのまま返す
+            return [
+                self.center_pos,
+                Pos::new(self.center_pos.x + relative_positions[0].x, self.center_pos.y + relative_positions[0].y),
+                Pos::new(self.center_pos.x + relative_positions[1].x, self.center_pos.y + relative_positions[1].y),
+                Pos::new(self.center_pos.x + relative_positions[2].x, self.center_pos.y + relative_positions[2].y),
+            ];
+        }
         let rotated_relative_positions: [Pos; 3] = relative_positions.map(|pos| {
             let (x, y) = match self.rotation {
                 0 => (pos.x, pos.y), // 0 degrees
-                1 => (pos.y, -pos.x), // 90 degrees
+                1 => (-pos.y, pos.x), // 90 degrees
                 2 => (-pos.x, -pos.y), // 180 degrees
-                3 => (-pos.y, pos.x), // 270 degrees
+                3 => (pos.y, -pos.x), // 270 degrees
                 _ => (0, 0), // This should never happen
             };
             Pos::new(self.center_pos.x + x, self.center_pos.y + y)
