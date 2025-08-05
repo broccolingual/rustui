@@ -4,17 +4,17 @@ pub const FIELD_WIDTH: usize = 10;
 pub const FIELD_MARGIN: usize = 4;
 pub const FIELD_HEIGHT: usize = 20 + FIELD_MARGIN;
 
-pub type Field = [[block::BlockType; FIELD_WIDTH]; FIELD_HEIGHT];
+pub type Field = [[Option<block::BlockType>; FIELD_WIDTH]; FIELD_HEIGHT];
 
 pub fn get_field() -> Field {
-  [[block::BlockType::default(); FIELD_WIDTH]; FIELD_HEIGHT]
+  [[None; FIELD_WIDTH]; FIELD_HEIGHT]
 }
 
 pub trait FieldExt {
   fn is_valid(&self, x: usize, y: usize) -> bool;
   fn set_block(&mut self, block: &block::Block) -> bool;
   fn remove_block(&mut self, block: &block::Block);
-  fn get_block(&self, x: usize, y: usize) -> block::BlockType;
+  fn get_block(&self, x: usize, y: usize) -> Option<block::BlockType>;
   fn check_collision(&self, block: &block::Block) -> bool;
   fn is_gameover(&self) -> bool;
   fn check_complete_line(&self, y: usize) -> bool;
@@ -33,7 +33,7 @@ impl FieldExt for Field {
     for pos in block.get_relative_positions() {
       let x = pos.x as usize;
       let y = pos.y as usize;
-      self[y][x] = block.block_type;
+      self[y][x] = Some(block.block_type);
     }
     true
   }
@@ -43,16 +43,16 @@ impl FieldExt for Field {
       let x = pos.x as usize;
       let y = pos.y as usize;
       if self.is_valid(x, y) {
-        self[y][x] = block::BlockType::Empty; // Reset to empty
+        self[y][x] = None; // Reset to empty
       }
     }
   }
 
-  fn get_block(&self, x: usize, y: usize) -> block::BlockType {
+  fn get_block(&self, x: usize, y: usize) -> Option<block::BlockType> {
     if self.is_valid(x, y) {
       self[y][x]
     } else {
-      block::BlockType::Empty
+      None
     }
   }
 
@@ -60,7 +60,7 @@ impl FieldExt for Field {
     for pos in block.get_relative_positions() {
       let x = pos.x as usize;
       let y = pos.y as usize;
-      if !self.is_valid(x, y) || !self.get_block(x, y).is_empty() {
+      if !self.is_valid(x, y) || self.get_block(x, y).is_some() {
         return true;
       }
     }
@@ -69,7 +69,7 @@ impl FieldExt for Field {
 
   fn is_gameover(&self) -> bool {
     for x in 0..FIELD_WIDTH {
-      if !self[FIELD_MARGIN][x].is_empty() {
+      if self[FIELD_MARGIN][x].is_some() {
         return true; // If any block is set in the top row, game over
       }
     }
@@ -77,7 +77,7 @@ impl FieldExt for Field {
   }
 
   fn check_complete_line(&self, y: usize) -> bool {
-    self[y].iter().all(|&block| !block.is_empty())
+    self[y].iter().all(|&block| block.is_some())
   }
 
   fn clear_lines(&mut self) -> u8 {
@@ -90,7 +90,7 @@ impl FieldExt for Field {
         cleared += 1;
       }
     }
-    self[0] = [block::BlockType::Empty; FIELD_WIDTH]; // Clear the top line
+    self[0] = [None; FIELD_WIDTH]; // Clear the top line
     cleared
   }
 }

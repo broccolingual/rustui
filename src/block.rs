@@ -12,13 +12,7 @@ impl Pos {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BlockType {
-  Empty, I, O, S, Z, J, L, T,
-}
-
-impl Default for BlockType {
-  fn default() -> Self {
-    BlockType::Empty
-  }
+  I, O, S, Z, J, L, T,
 }
 
 impl BlockType {
@@ -35,7 +29,6 @@ impl BlockType {
 
   pub fn get_relative_positions(&self) -> [Pos; 3] {
     match self {
-      BlockType::Empty => [Pos::new(0, 0); 3],
       BlockType::I => [Pos::new(0, -2), Pos::new(0, -1), Pos::new(0, 1)],
       BlockType::O => [Pos::new(1, 0), Pos::new(0, -1), Pos::new(1, -1)],
       BlockType::S => [Pos::new(-1, 0), Pos::new(0, -1), Pos::new(1, -1)],
@@ -48,7 +41,6 @@ impl BlockType {
 
   pub fn get_color(&self) -> u8 {
     match self {
-      BlockType::Empty => 0,
       BlockType::I => 1,
       BlockType::O => 2,
       BlockType::S => 3,
@@ -57,14 +49,6 @@ impl BlockType {
       BlockType::L => 6,
       BlockType::T => 7,
     }
-  }
-
-  pub fn is_empty(&self) -> bool {
-    matches!(self, BlockType::Empty)
-  }
-
-  pub fn is_block(&self) -> bool {
-    !self.is_empty()
   }
 }
 

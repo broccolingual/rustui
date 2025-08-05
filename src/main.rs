@@ -7,8 +7,8 @@ pub mod block;
 use block::*;
 use field::*;
 
-const RENDERING_RATE: time::Duration = time::Duration::from_millis(15); // ms
-const INPUT_CAPTURING_RATE: time::Duration = time::Duration::from_millis(15); // ms
+const RENDERING_RATE: time::Duration = time::Duration::from_millis(16); // ms
+const INPUT_CAPTURING_RATE: time::Duration = time::Duration::from_millis(10); // ms
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
   let mut win = Window::new()?;
@@ -43,13 +43,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   let mut field_frame = Framebuffer::new(FIELD_WIDTH * 2 + 2, FIELD_HEIGHT + 2);
   let mut holding_frame = Framebuffer::new(12, 6);
+  let mut next_frame = Framebuffer::new(12, 6);
 
   let init_pos = Pos::new((FIELD_WIDTH / 2) as i32, 2);
   let mut field = get_field();
   let mut random_block_pool = vec![];
   let mut current_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
+  let mut next_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
   let mut holding_block: Option<Block> = None;
-  let drop_counter_max = 100; // Adjust this value to control the drop speed
+  let drop_counter_max = 60; // 1 = 1 frame, 60 = 1 second
   let mut drop_counter = 0;
   let mut is_gameover = false;
 
@@ -69,13 +71,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Key::Char('q') => break,
         Key::Char('r') => {
           if holding_block.is_none() {
+            holding_block = Some(current_block);
+            current_block = next_block;
             current_block.init(init_pos);
-            holding_block = Some(current_block);
-            current_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
+            next_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
           } else {
-            let temp = holding_block.take().unwrap();
+            let holded_block = holding_block.take().unwrap();
             holding_block = Some(current_block);
-            current_block = temp;
+            current_block = holded_block;
             current_block.init(init_pos);
           }
         }
@@ -94,7 +97,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if !field.set_block(&current_block) {
               break;
             }
-            current_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
+            current_block = next_block;
+            current_block.init(init_pos);
+            next_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
           }
         }
         Key::ArrowRight => {
@@ -121,7 +126,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if !field.set_block(&current_block) {
           break;
         }
-        current_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
+        current_block = next_block;
+        current_block.init(init_pos);
+        next_block = Block::new(init_pos, BlockType::get_random_from_pool(&mut random_block_pool));
       }
     }
     
@@ -135,23 +142,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // フィールドのフレームバッファを更新
     field_frame.clear();
     field_frame.set_border(style![Attr::NORMAL]);
-    field_frame.set_color(Color::Bg(0));
     field_frame.set_str(0, 0, "                      ", style![Attr::BOLD], Align::Left);
     for y in 0..FIELD_HEIGHT {
       for x in 0..FIELD_WIDTH {
-        let block_type = field.get_block(x, y);
+        let style: term::Style;
+        match field.get_block(x, y) {
+            Some(block_type) => style = style![Attr::NORMAL, Color::Bg(block_type.get_color())],
+            None => style = style![Attr::NORMAL],
+        }
         if y == 4 {
-          field_frame.set_str(x * 2 + 1, y + 1, "--", style![Attr::THIN, Color::Bg(block_type.get_color())], Align::Left);
+          field_frame.set_str(x * 2 + 1, y + 1, "__", style, Align::Left);
           continue;
         }
-        field_frame.set_str(x * 2 + 1, y + 1, "  ", style![Attr::NORMAL, Color::Bg(block_type.get_color())], Align::Left);
+        field_frame.set_str(x * 2 + 1, y + 1, "  ", style, Align::Left);
       }
     }
 
     // ホールドブロックのフレームバッファを更新
     holding_frame.clear();
     holding_frame.set_border(style![Attr::NORMAL]);
-    holding_frame.set_color(Color::Bg(0));
     holding_frame.set_str(holding_frame.width / 2, 0, "HOLD", style![Attr::BOLD], Align::Center);
     if let Some(mut block) = holding_block {
       block.init(Pos::new(2, 2));
@@ -160,21 +169,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
       }
     }
 
+    // 次のブロックのフレームバッファを更新
+    next_frame.clear();
+    next_frame.set_border(style![Attr::NORMAL]);
+    next_frame.set_str(next_frame.width / 2, 0, "NEXT", style![Attr::BOLD], Align::Center);
+    next_block.init(Pos::new(2, 2));
+    for pos in next_block.get_relative_positions() {
+      next_frame.set_str(pos.x as usize * 2 + 1, pos.y as usize + 1, "  ", style![Attr::NORMAL, Color::Bg(next_block.block_type.get_color())], Align::Left);
+    }
+
     {
       let mut back_locked = win.get_lock();
       back_locked.clear();
       back_locked.set_border(style![Attr::NORMAL]);
       back_locked.combine(&field_frame, x_center - field_frame.width / 2, y_center - field_frame.height / 2);
-      back_locked.combine(&holding_frame, x_center + field_frame.width / 2 + 2, y_center - field_frame.height / 2 + 1);
+      back_locked.combine(&holding_frame, x_center - field_frame.width / 2 - holding_frame.width - 2, y_center - field_frame.height / 2 + 1);
+      back_locked.combine(&next_frame, x_center + field_frame.width / 2 + 2, y_center - field_frame.height / 2 + 1);
       back_locked.combine(&info_frame, 2, 1);
     }
-
-    thread::sleep(time::Duration::from_millis(5));
 
     field.remove_block(&current_block);
     field.clear_lines();
 
     drop_counter += 1;
+
+    thread::sleep(time::Duration::from_millis(16));
   }
 
   if is_gameover {
