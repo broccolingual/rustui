@@ -6,19 +6,24 @@ use crate::field::FieldExt;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Core {
-    pub field: field::Field,
-    pub random_block_pool: Vec<block::BlockType>,
-    pub spawn_pos: block::Pos,
-    pub current_block: block::Block,
-    pub next_block: block::Block,
-    pub holding_block: Option<block::Block>,
+    field: field::Field,
+    random_block_pool: Vec<block::BlockType>,
+    spawn_pos: block::Pos,
+    current_block: block::Block,
+    next_block: block::Block,
+    holding_block: Option<block::Block>,
     pub field_frame: Framebuffer,
     pub next_block_frame: Framebuffer,
     pub holding_block_frame: Framebuffer,
+    drop_counter_max: usize,
+    drop_counter: usize,
+    moving_after_drop_counter_max: usize,
+    moving_after_drop_counter: usize,
+    pub is_gameover: bool,
 }
 
 impl Core {
-    pub fn new() -> Self {
+    pub fn new(drop_counter_max: usize, moving_after_drop_counter_max: usize) -> Self {
         let mut core = Core {
             field: field::get_field(),
             random_block_pool: Vec::new(),
@@ -29,6 +34,11 @@ impl Core {
             field_frame: Framebuffer::new(field::FIELD_WIDTH * 2 + 2, field::FIELD_HEIGHT + 2),
             next_block_frame: Framebuffer::new(12, 6),
             holding_block_frame: Framebuffer::new(12, 6),
+            drop_counter_max,
+            drop_counter: 0,
+            moving_after_drop_counter_max,
+            moving_after_drop_counter: 0,
+            is_gameover: false,
         };
         core.current_block = block::Block::new(
             core.spawn_pos,
@@ -41,15 +51,19 @@ impl Core {
         core
     }
 
+    fn generate_new_block(&mut self) {
+        self.current_block = self.next_block;
+        self.current_block.init(self.spawn_pos);
+        self.next_block = block::Block::new(
+            self.spawn_pos,
+            block::BlockType::get_random_from_pool(&mut self.random_block_pool),
+        );
+    }
+
     pub fn hold(&mut self) {
         if self.holding_block.is_none() {
             self.holding_block = Some(self.current_block);
-            self.current_block = self.next_block;
-            self.current_block.init(self.spawn_pos);
-            self.next_block = block::Block::new(
-                self.spawn_pos,
-                block::BlockType::get_random_from_pool(&mut self.random_block_pool),
-            );
+            self.generate_new_block();
         } else {
             let held_block = self.holding_block.take().unwrap();
             self.holding_block = Some(self.current_block);
@@ -72,13 +86,19 @@ impl Core {
             if !self.field.set_block(&self.current_block) {
                 return;
             }
-            self.current_block = self.next_block;
-            self.current_block.init(self.spawn_pos);
-            self.next_block = block::Block::new(
-                self.spawn_pos,
-                block::BlockType::get_random_from_pool(&mut self.random_block_pool),
-            );
+            self.generate_new_block();
         }
+    }
+
+    pub fn quick_drop(&mut self) {
+        while !self.field.check_collision(&self.current_block) {
+            self.current_block.move_by(0, 1);
+        }
+        self.current_block.move_by(0, -1);
+        if !self.field.set_block(&self.current_block) {
+            return;
+        }
+        self.generate_new_block();
     }
 
     pub fn move_right(&mut self) {
@@ -95,13 +115,13 @@ impl Core {
         }
     }
 
-    pub fn draw_block_to_buffer(fb: &mut Framebuffer, block: &block::Block) {
+    fn draw_block_to_buffer(fb: &mut Framebuffer, block: &block::Block) {
         for pos in block.get_relative_positions() {
             fb.set_str(
                 pos.x as usize * 2 + 1,
                 pos.y as usize + 1,
                 "  ",
-                style![Attr::NORMAL, Color::Bg(block.block_type.get_color())],
+                style![Attr::NORMAL, block.get_color()],
                 Align::Left,
             )
         }
@@ -121,9 +141,7 @@ impl Core {
             for x in 0..field::FIELD_WIDTH {
                 let style: term::Style;
                 match self.field.get_block(x, y) {
-                    Some(block_type) => {
-                        style = style![Attr::NORMAL, Color::Bg(block_type.get_color())]
-                    }
+                    Some(block_type) => style = style![Attr::NORMAL, block_type.get_color()],
                     None => style = style![Attr::NORMAL],
                 }
                 if y == 4 {
@@ -167,11 +185,14 @@ impl Core {
         }
     }
 
-    pub fn is_gameover(&self) -> bool {
-        self.field.is_gameover()
-    }
-
     pub fn proc_before_draw(&mut self) {
+        if self.drop_counter >= self.drop_counter_max {
+            self.drop_counter = 0;
+            self.move_down();
+        }
+        if self.field.is_gameover() {
+            self.is_gameover = true;
+        }
         self.field.set_block(&self.current_block); // フィールドに現在のブロックをセット
         self.update_field_frame(); // フィールドのフレームバッファを更新
         self.update_holding_block_frame(); // ホールドブロックのフレームバッファを更新
@@ -181,5 +202,7 @@ impl Core {
     pub fn proc_after_draw(&mut self) {
         self.field.remove_block(&self.current_block); // フィールドから現在のブロックを削除
         self.field.clear_lines(); // フィールドのラインをクリア
+        self.drop_counter += 1; // ドロップカウンターをインクリメント
+        self.moving_after_drop_counter += 1; // 落下後のカウンターをインクリメント
     }
 }

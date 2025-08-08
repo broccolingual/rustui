@@ -18,7 +18,7 @@ pub trait FieldExt {
     fn check_collision(&self, block: &block::Block) -> bool;
     fn is_gameover(&self) -> bool;
     fn check_complete_line(&self, y: usize) -> bool;
-    fn clear_lines(&mut self) -> u8;
+    fn clear_lines(&mut self) -> Option<Vec<usize>>;
 }
 
 impl FieldExt for Field {
@@ -80,17 +80,20 @@ impl FieldExt for Field {
         self[y].iter().all(|&block| block.is_some())
     }
 
-    fn clear_lines(&mut self) -> u8 {
-        let mut cleared = 0;
+    fn clear_lines(&mut self) -> Option<Vec<usize>> {
+        let mut cleared_line_indices = Vec::new();
         for y in 0..FIELD_HEIGHT {
             if self.check_complete_line(y) {
                 for i in (1..=y).rev() {
                     self[i] = self[i - 1];
                 }
-                cleared += 1;
+                cleared_line_indices.push(y);
             }
         }
         self[0] = [None; FIELD_WIDTH]; // Clear the top line
-        cleared
+        if cleared_line_indices.is_empty() {
+            return None; // No lines cleared
+        }
+        Some(cleared_line_indices)
     }
 }

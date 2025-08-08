@@ -1,3 +1,5 @@
+use rcurses::term;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Pos {
     pub x: i32,
@@ -50,15 +52,15 @@ impl BlockType {
         }
     }
 
-    pub fn get_color(&self) -> u8 {
+    pub fn get_color(&self) -> term::Color {
         match self {
-            BlockType::I => 1,
-            BlockType::O => 2,
-            BlockType::S => 3,
-            BlockType::Z => 4,
-            BlockType::J => 5,
-            BlockType::L => 6,
-            BlockType::T => 7,
+            BlockType::I => term::Color::BgRgb(104, 201, 255),
+            BlockType::O => term::Color::BgRgb(255, 246, 75),
+            BlockType::S => term::Color::BgRgb(124, 227, 124),
+            BlockType::Z => term::Color::BgRgb(255, 119, 119),
+            BlockType::J => term::Color::BgRgb(104, 116, 255),
+            BlockType::L => term::Color::BgRgb(255, 180, 75),
+            BlockType::T => term::Color::BgRgb(209, 126, 255),
         }
     }
 }
@@ -133,5 +135,9 @@ impl Block {
     pub fn move_by(&mut self, dx: i32, dy: i32) {
         self.center_pos.x += dx;
         self.center_pos.y += dy;
+    }
+
+    pub fn get_color(&self) -> term::Color {
+        self.block_type.get_color()
     }
 }

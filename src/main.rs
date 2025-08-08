@@ -9,6 +9,8 @@ use core::*;
 
 const RENDERING_RATE: time::Duration = time::Duration::from_millis(16); // ms
 const INPUT_CAPTURING_RATE: time::Duration = time::Duration::from_millis(10); // ms
+const DROP_COUNTER_MAX: usize = 60; // 1 = 1 frame, 60 = 1 second
+const MOVING_AFTER_DROP_COUNTER_MAX: usize = 30; // 30 frames after drop
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut win = Window::new()?;
@@ -73,11 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     thread::sleep(time::Duration::from_secs(2));
 
-    let mut core = Core::new();
-
-    let drop_counter_max = 60; // 1 = 1 frame, 60 = 1 second
-    let mut drop_counter = 0;
-    let mut is_gameover = false;
+    let mut core = Core::new(DROP_COUNTER_MAX, MOVING_AFTER_DROP_COUNTER_MAX);
 
     loop {
         if let Ok(v) = fps_rx.try_recv() {
@@ -101,6 +99,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         info_frame.set_color(Color::Bg24(235));
 
+        if core.is_gameover {
+            break;
+        }
+
         if let Ok(key) = key_rx.try_recv() {
             last_key = Some(key.clone());
             match key {
@@ -109,9 +111,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     core.hold();
                 }
                 Key::Char(' ') => {
+                    core.quick_drop();
+                }
+                Key::ArrowUp => {
                     core.rotate();
                 }
-                Key::ArrowUp => {}
                 Key::ArrowDown => {
                     core.move_down();
                 }
@@ -123,16 +127,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 _ => (),
             }
-        }
-
-        if drop_counter >= drop_counter_max {
-            drop_counter = 0;
-            core.move_down();
-        }
-
-        if core.is_gameover() {
-            is_gameover = true;
-            break;
         }
 
         core.proc_before_draw();
@@ -161,12 +155,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         core.proc_after_draw();
 
-        drop_counter += 1;
-
         thread::sleep(time::Duration::from_millis(16));
     }
 
-    if is_gameover {
+    if core.is_gameover {
         {
             let mut back_locked = win.get_lock();
             back_locked.clear();
