@@ -1,55 +1,66 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Pos {
-  pub x: i32,
-  pub y: i32,
+    pub x: i32,
+    pub y: i32,
 }
 
 impl Pos {
-  pub fn new(x: i32, y: i32) -> Self {
-    Self { x, y }
-  }
+    pub fn new(x: i32, y: i32) -> Self {
+        Self { x, y }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BlockType {
-  I, O, S, Z, J, L, T,
+    I,
+    O,
+    S,
+    Z,
+    J,
+    L,
+    T,
 }
 
 impl BlockType {
-  pub fn get_random_from_pool(pool: &mut Vec<BlockType>) -> Self {
-    if pool.is_empty() {
-      pool.extend(vec![
-        BlockType::I, BlockType::O, BlockType::S, BlockType::Z,
-        BlockType::J, BlockType::L, BlockType::T,
-      ]);
+    pub fn get_random_from_pool(pool: &mut Vec<BlockType>) -> Self {
+        if pool.is_empty() {
+            pool.extend(vec![
+                BlockType::I,
+                BlockType::O,
+                BlockType::S,
+                BlockType::Z,
+                BlockType::J,
+                BlockType::L,
+                BlockType::T,
+            ]);
+        }
+        let idx = rand::random::<usize>() % pool.len();
+        pool.remove(idx)
     }
-    let idx = rand::random::<usize>() % pool.len();
-    pool.remove(idx)
-  }
 
-  pub fn get_relative_positions(&self) -> [Pos; 3] {
-    match self {
-      BlockType::I => [Pos::new(0, -2), Pos::new(0, -1), Pos::new(0, 1)],
-      BlockType::O => [Pos::new(1, 0), Pos::new(0, -1), Pos::new(1, -1)],
-      BlockType::S => [Pos::new(-1, 0), Pos::new(0, -1), Pos::new(1, -1)],
-      BlockType::Z => [Pos::new(-1, -1), Pos::new(0, -1), Pos::new(1, 0)],
-      BlockType::J => [Pos::new(-1, -1), Pos::new(-1, 0), Pos::new(1, 0)],
-      BlockType::L => [Pos::new(-1, 0), Pos::new(1, 0), Pos::new(1, -1)],
-      BlockType::T => [Pos::new(-1, 0), Pos::new(1, 0), Pos::new(0, -1)],
+    pub fn get_relative_positions(&self) -> [Pos; 3] {
+        match self {
+            BlockType::I => [Pos::new(0, -2), Pos::new(0, -1), Pos::new(0, 1)],
+            BlockType::O => [Pos::new(1, 0), Pos::new(0, -1), Pos::new(1, -1)],
+            BlockType::S => [Pos::new(-1, 0), Pos::new(0, -1), Pos::new(1, -1)],
+            BlockType::Z => [Pos::new(-1, -1), Pos::new(0, -1), Pos::new(1, 0)],
+            BlockType::J => [Pos::new(-1, -1), Pos::new(-1, 0), Pos::new(1, 0)],
+            BlockType::L => [Pos::new(-1, 0), Pos::new(1, 0), Pos::new(1, -1)],
+            BlockType::T => [Pos::new(-1, 0), Pos::new(1, 0), Pos::new(0, -1)],
+        }
     }
-  }
 
-  pub fn get_color(&self) -> u8 {
-    match self {
-      BlockType::I => 1,
-      BlockType::O => 2,
-      BlockType::S => 3,
-      BlockType::Z => 4,
-      BlockType::J => 5,
-      BlockType::L => 6,
-      BlockType::T => 7,
+    pub fn get_color(&self) -> u8 {
+        match self {
+            BlockType::I => 1,
+            BlockType::O => 2,
+            BlockType::S => 3,
+            BlockType::Z => 4,
+            BlockType::J => 5,
+            BlockType::L => 6,
+            BlockType::T => 7,
+        }
     }
-  }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -83,21 +94,31 @@ impl Block {
 
     pub fn get_relative_positions(&self) -> [Pos; 4] {
         let relative_positions = self.block_type.get_relative_positions();
-        if self.block_type == BlockType::O { // Oブロックは回転しないのでそのまま返す
+        if self.block_type == BlockType::O {
+            // Oブロックは回転しないのでそのまま返す
             return [
                 self.center_pos,
-                Pos::new(self.center_pos.x + relative_positions[0].x, self.center_pos.y + relative_positions[0].y),
-                Pos::new(self.center_pos.x + relative_positions[1].x, self.center_pos.y + relative_positions[1].y),
-                Pos::new(self.center_pos.x + relative_positions[2].x, self.center_pos.y + relative_positions[2].y),
+                Pos::new(
+                    self.center_pos.x + relative_positions[0].x,
+                    self.center_pos.y + relative_positions[0].y,
+                ),
+                Pos::new(
+                    self.center_pos.x + relative_positions[1].x,
+                    self.center_pos.y + relative_positions[1].y,
+                ),
+                Pos::new(
+                    self.center_pos.x + relative_positions[2].x,
+                    self.center_pos.y + relative_positions[2].y,
+                ),
             ];
         }
         let rotated_relative_positions: [Pos; 3] = relative_positions.map(|pos| {
             let (x, y) = match self.rotation {
-                0 => (pos.x, pos.y), // 0 degrees
-                1 => (-pos.y, pos.x), // 90 degrees
+                0 => (pos.x, pos.y),   // 0 degrees
+                1 => (-pos.y, pos.x),  // 90 degrees
                 2 => (-pos.x, -pos.y), // 180 degrees
-                3 => (pos.y, -pos.x), // 270 degrees
-                _ => (0, 0), // This should never happen
+                3 => (pos.y, -pos.x),  // 270 degrees
+                _ => (0, 0),           // This should never happen
             };
             Pos::new(self.center_pos.x + x, self.center_pos.y + y)
         });
