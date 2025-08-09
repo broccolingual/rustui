@@ -1,11 +1,13 @@
 use std::io::{self, Write};
 
-use crate::term;
+use crate::{Attr, Color, ColorExt, term};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Cell {
     pub ch: char,
-    pub style: term::Style,
+    pub attrs: term::Attr,
+    pub fg: term::Color,
+    pub bg: term::Color,
 }
 
 impl Cell {
@@ -13,7 +15,9 @@ impl Cell {
     pub fn new() -> Self {
         Self {
             ch: ' ',
-            style: term::Style::default(),
+            attrs: Attr::NORMAL,
+            fg: Color::new(),
+            bg: Color::new(),
         }
     }
 }
@@ -34,35 +38,17 @@ pub enum Align {
 pub struct Framebuffer {
     pub width: usize,
     pub height: usize,
-    buffer: Vec<Vec<Cell>>,
+    pub buffer: Vec<Cell>,
 }
 
 impl Framebuffer {
     /// コンストラクタ
     pub fn new(width: usize, height: usize) -> Self {
-        let buffer = vec![vec![Cell::default(); width]; height];
+        let buffer = vec![Cell::default(); width * height];
         Self {
             width,
             height,
             buffer,
-        }
-    }
-
-    /// バッファを初期化
-    pub fn clear(&mut self) {
-        for row in &mut self.buffer {
-            for cell in row {
-                *cell = Cell::default();
-            }
-        }
-    }
-
-    /// バッファの全てのセルに色を設定
-    pub fn set_color_all(&mut self, color: term::Color) {
-        for row in &mut self.buffer {
-            for cell in row {
-                cell.style = cell.style | color;
-            }
         }
     }
 
@@ -71,16 +57,43 @@ impl Framebuffer {
         x < self.width && y < self.height
     }
 
+    /// バッファを初期化
+    pub fn clear(&mut self) {
+        for cell in &mut self.buffer {
+            *cell = Cell::default();
+        }
+    }
+
     /// バッファに文字と属性を書き込み
-    pub fn set_char(&mut self, x: usize, y: usize, ch: char, style: term::Style) {
+    pub fn set_char(
+        &mut self,
+        x: usize,
+        y: usize,
+        ch: char,
+        attrs: term::Attr,
+        fg: term::Color,
+        bg: term::Color,
+    ) {
         if self.check_range(x, y) {
-            self.buffer[y][x].ch = ch;
-            self.buffer[y][x].style = style;
+            let idx = y * self.width + x;
+            self.buffer[idx].ch = ch;
+            self.buffer[idx].attrs = attrs;
+            self.buffer[idx].fg = fg;
+            self.buffer[idx].bg = bg;
         }
     }
 
     /// バッファに文字列と属性を書き込み
-    pub fn set_str(&mut self, x: usize, y: usize, str: &str, style: term::Style, align: Align) {
+    pub fn set_str(
+        &mut self,
+        x: usize,
+        y: usize,
+        str: &str,
+        attrs: term::Attr,
+        fg: term::Color,
+        bg: term::Color,
+        align: Align,
+    ) {
         let start_x = match align {
             Align::Left => x,
             Align::Center => {
@@ -99,45 +112,61 @@ impl Framebuffer {
             }
         };
         for (i, ch) in str.chars().enumerate() {
-            self.set_char(start_x + i, y, ch, style);
+            self.set_char(start_x + i, y, ch, attrs, fg, bg);
         }
     }
 
     /// バッファのサイズの外枠を描画
-    pub fn set_border(&mut self, style: term::Style) {
+    pub fn set_border(&mut self, attrs: term::Attr, fg: term::Color, bg: term::Color) {
         let w = self.width;
         let h = self.height;
 
         // 上下の線
         for x in 1..w - 1 {
-            self.set_char(x, 0, '─', style);
-            self.set_char(x, h - 1, '─', style);
+            self.set_char(x, 0, '─', attrs, fg, bg);
+            self.set_char(x, h - 1, '─', attrs, fg, bg);
         }
 
         // 左右の線
         for y in 1..h - 1 {
-            self.set_char(0, y, '│', style);
-            self.set_char(w - 1, y, '│', style);
+            self.set_char(0, y, '│', attrs, fg, bg);
+            self.set_char(w - 1, y, '│', attrs, fg, bg);
         }
 
         // 角の文字
-        self.set_char(0, 0, '┌', style);
-        self.set_char(w - 1, 0, '┐', style);
-        self.set_char(0, h - 1, '└', style);
-        self.set_char(w - 1, h - 1, '┘', style);
+        self.set_char(0, 0, '┌', attrs, fg, bg);
+        self.set_char(w - 1, 0, '┐', attrs, fg, bg);
+        self.set_char(0, h - 1, '└', attrs, fg, bg);
+        self.set_char(w - 1, h - 1, '┘', attrs, fg, bg);
     }
 
     /// バッファに縦線を描画
-    pub fn set_vline(&mut self, x: usize, y_start: usize, y_end: usize, style: term::Style) {
+    pub fn set_vline(
+        &mut self,
+        x: usize,
+        y_start: usize,
+        y_end: usize,
+        attrs: term::Attr,
+        fg: term::Color,
+        bg: term::Color,
+    ) {
         for y in y_start..=y_end {
-            self.set_char(x, y, '│', style);
+            self.set_char(x, y, '│', attrs, fg, bg);
         }
     }
 
     /// バッファに横線を描画
-    pub fn set_hline(&mut self, y: usize, x_start: usize, x_end: usize, style: term::Style) {
+    pub fn set_hline(
+        &mut self,
+        y: usize,
+        x_start: usize,
+        x_end: usize,
+        attrs: term::Attr,
+        fg: term::Color,
+        bg: term::Color,
+    ) {
         for x in x_start..=x_end {
-            self.set_char(x, y, '─', style);
+            self.set_char(x, y, '─', attrs, fg, bg);
         }
     }
 
@@ -146,8 +175,8 @@ impl Framebuffer {
         for y in 0..other.height {
             for x in 0..other.width {
                 if self.check_range(x + x_offset, y + y_offset) {
-                    let cell = &other.buffer[y][x];
-                    self.set_char(x + x_offset, y + y_offset, cell.ch, cell.style);
+                    let idx = (y + y_offset) * self.width + (x + x_offset);
+                    self.buffer[idx] = other.buffer[y * other.width + x].clone();
                 }
             }
         }
@@ -162,32 +191,66 @@ impl Framebuffer {
             ));
         }
 
-        let mut output = String::new();
-        let mut prev_attr: Option<&term::Style> = None;
+        let mut stdout_lock = io::stdout().lock(); // 標準出力をロック
+        let mut prev_attrs = Attr::NORMAL;
+        let mut prev_fg: Color = Color::new();
+        let mut prev_bg: Color = Color::new();
 
+        stdout_lock.write_all("\x1B[0m".as_bytes())?; // すべての属性をリセット
+        stdout_lock.flush()?;
+
+        // 変更があるセルを最初に収集
+        let mut changes = Vec::new();
         for y in 0..self.height {
             for x in 0..self.width {
-                let front = &self.buffer[y][x];
-                let back = &back_fb.buffer[y][x];
+                let idx = y * self.width + x;
+                let front = &self.buffer[idx];
+                let back = &back_fb.buffer[idx];
 
                 if front != back {
-                    // フロントバッファのCellとバックバッファのCellが異なる場合のみ描画
-                    if prev_attr != Some(&back.style) {
-                        // 属性が異なる場合のみ属性を更新
-                        output.push_str("\x1B[0m"); // 属性をリセット
-                        output.push_str(&back.style.to_ansi()); // 属性を付与
-                        prev_attr = Some(&back.style); // 属性を更新
-                    }
-                    output.push_str(&format!("\x1B[{};{}H", y + 1, x + 1)); // 対象の座標に移動
-                    output.push(back.ch); // 文字を追加
-                    self.buffer[y][x] = back.clone(); // フロントバッファにCellをコピー
+                    changes.push((x, y, idx, back));
                 }
             }
         }
 
-        output.push_str(&term::Style::default().to_ansi()); // 属性をリセット
-        io::stdout().write_all(output.as_bytes())?; // バッファに書き込む
-        io::stdout().flush()?; // バッファを描画
+        // セルごとの出力を行う
+        for (x, y, idx, back) in changes {
+            let mut cell_output = String::new();
+
+            cell_output.push_str(&format!("\x1B[{};{}H", y + 1, x + 1)); // 対象の座標に移動
+            if prev_attrs != back.attrs {
+                prev_attrs = back.attrs;
+                cell_output.push_str(&back.attrs.to_ansi());
+            }
+            if prev_fg != back.fg {
+                prev_fg = back.fg;
+                if back.fg.is_valid() {
+                    cell_output.push_str(&format!(
+                        "\x1B[38;2;{};{};{}m",
+                        back.fg.0, back.fg.1, back.fg.2
+                    ));
+                } else {
+                    cell_output.push_str("\x1B[39m"); // Reset foreground color
+                }
+            }
+            if prev_bg != back.bg {
+                prev_bg = back.bg;
+                if back.bg.is_valid() {
+                    cell_output.push_str(&format!(
+                        "\x1B[48;2;{};{};{}m",
+                        back.bg.0, back.bg.1, back.bg.2
+                    ));
+                } else {
+                    cell_output.push_str("\x1B[49m"); // Reset background color
+                }
+            }
+            cell_output.push(back.ch); // 文字を追加
+
+            stdout_lock.write_all(cell_output.as_bytes())?;
+            stdout_lock.flush()?; // フラッシュして出力を反映
+
+            self.buffer[idx] = back.clone(); // フロントバッファにCellをコピー
+        }
         Ok(())
     }
 }

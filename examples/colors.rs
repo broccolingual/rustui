@@ -12,9 +12,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create a key listener
     let (mut key_listener, key_rx) = KeyListener::new(INPUT_CAPTURING_RATE);
 
-    let x_center = win.width / 2;
-    let y_center: usize = win.height / 2;
-
     loop {
         // Check for key presses
         if let Ok(key) = key_rx.try_recv() {
@@ -27,15 +24,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Render the frame
         {
             let mut canvas = win.get_canvas();
-            canvas.set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
+            for r in 0..8 {
+                for g in 0..8 {
+                    for b in 0..8 {
+                        let color = (r * 32 as i32, g * 32 as i32, b * 32 as i32);
+                        canvas.set_str(
+                            (r * 2 + b * 18) as usize,
+                            g as usize,
+                            "  ",
+                            term::Attr::NORMAL,
+                            Color::new(),
+                            color,
+                            Align::Left,
+                        );
+                    }
+                }
+            }
             canvas.set_str(
-                x_center,
-                y_center,
-                "Hello, world! (Press 'q' to quit)",
-                term::Attr::NORMAL,
-                (128, 255, 128),
+                0,
+                10,
+                "Press 'q' to quit",
+                term::Attr::BOLD,
                 Color::new(),
-                Align::Center,
+                Color::new(),
+                Align::Left,
             );
         }
 

@@ -65,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         {
             let mut canvas = win.get_canvas();
-            canvas.set_border(style![Attr::NORMAL]);
+            canvas.set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
             canvas.combine(
                 &core.field_frame,
                 x_center - core.field_frame.width / 2,
@@ -91,12 +91,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if core.is_gameover {
         {
             let mut canvas = win.get_canvas();
-            canvas.set_border(style![Attr::NORMAL]);
+            canvas.set_border(term::Attr::NORMAL, (255, 255, 255), (0, 0, 0));
             canvas.set_str(
                 x_center,
                 y_center,
                 "G A M E  O V E R",
-                style![Attr::BOLD, Color::Fg24(196)],
+                term::Attr::BOLD,
+                (255, 128, 128),
+                (0, 0, 0),
                 Align::Center,
             );
         }

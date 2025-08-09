@@ -6,7 +6,7 @@ use std::time;
 
 use crate::framebuffer;
 use crate::render;
-use crate::term;
+use crate::term::{self, ColorExt};
 
 pub struct Window {
     pub width: usize,
@@ -71,7 +71,9 @@ impl Window {
                 2,
                 1,
                 &format!("FPS: {:.2}", fps),
-                term::Style::default() | term::Color::FgRgb(128, 255, 128),
+                term::Attr::NORMAL | term::Attr::BOLD,
+                (128, 255, 128),
+                term::Color::new(),
                 framebuffer::Align::Left,
             );
         }

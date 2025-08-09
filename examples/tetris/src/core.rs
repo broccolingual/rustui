@@ -121,7 +121,9 @@ impl Core {
                 pos.x as usize * 2 + 1,
                 pos.y as usize + 1,
                 "  ",
-                style![Attr::NORMAL, block.get_color()],
+                term::Attr::NORMAL,
+                (255, 255, 255),
+                block.get_color(),
                 Align::Left,
             )
         }
@@ -129,40 +131,60 @@ impl Core {
 
     fn update_field_frame(&mut self) {
         self.field_frame.clear();
-        self.field_frame.set_border(style![Attr::NORMAL]);
+        self.field_frame
+            .set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
         self.field_frame.set_str(
             0,
             0,
             "                      ",
-            style![Attr::BOLD],
+            term::Attr::NORMAL,
+            (255, 255, 255),
+            Color::new(),
             Align::Left,
         );
         for y in 0..field::FIELD_HEIGHT {
             for x in 0..field::FIELD_WIDTH {
-                let style: term::Style;
+                let color: term::Color;
                 match self.field.get_block(x, y) {
-                    Some(block_type) => style = style![Attr::NORMAL, block_type.get_color()],
-                    None => style = style![Attr::NORMAL],
+                    Some(block_type) => color = block_type.get_color(),
+                    None => color = Color::new(),
                 }
                 if y == 4 {
-                    self.field_frame
-                        .set_str(x * 2 + 1, y + 1, "__", style, Align::Left);
+                    self.field_frame.set_str(
+                        x * 2 + 1,
+                        y + 1,
+                        "──",
+                        term::Attr::NORMAL,
+                        (255, 255, 255),
+                        color,
+                        Align::Left,
+                    );
                     continue;
                 }
-                self.field_frame
-                    .set_str(x * 2 + 1, y + 1, "  ", style, Align::Left);
+                self.field_frame.set_str(
+                    x * 2 + 1,
+                    y + 1,
+                    "  ",
+                    term::Attr::NORMAL,
+                    (255, 255, 255),
+                    color,
+                    Align::Left,
+                );
             }
         }
     }
 
     fn update_next_block_frame(&mut self) {
         self.next_block_frame.clear();
-        self.next_block_frame.set_border(style![Attr::NORMAL]);
+        self.next_block_frame
+            .set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
         self.next_block_frame.set_str(
             self.next_block_frame.width / 2,
             0,
             "NEXT",
-            style![Attr::BOLD],
+            term::Attr::NORMAL,
+            (255, 255, 255),
+            Color::new(),
             Align::Center,
         );
         self.next_block.init(block::Pos::new(2, 2));
@@ -171,12 +193,15 @@ impl Core {
 
     fn update_holding_block_frame(&mut self) {
         self.holding_block_frame.clear();
-        self.holding_block_frame.set_border(style![Attr::NORMAL]);
+        self.holding_block_frame
+            .set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
         self.holding_block_frame.set_str(
             self.holding_block_frame.width / 2,
             0,
             "HOLD",
-            style![Attr::BOLD],
+            term::Attr::NORMAL,
+            (255, 255, 255),
+            Color::new(),
             Align::Center,
         );
         if let &Some(mut block) = &self.holding_block {

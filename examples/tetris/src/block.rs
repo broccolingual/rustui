@@ -55,13 +55,13 @@ impl BlockType {
 
     pub fn get_color(&self) -> term::Color {
         match self {
-            BlockType::I => term::Color::BgRgb(104, 201, 255),
-            BlockType::O => term::Color::BgRgb(255, 246, 75),
-            BlockType::S => term::Color::BgRgb(124, 227, 124),
-            BlockType::Z => term::Color::BgRgb(255, 119, 119),
-            BlockType::J => term::Color::BgRgb(104, 116, 255),
-            BlockType::L => term::Color::BgRgb(255, 180, 75),
-            BlockType::T => term::Color::BgRgb(209, 126, 255),
+            BlockType::I => (0, 255, 255),
+            BlockType::O => (255, 255, 0),
+            BlockType::S => (0, 255, 0),
+            BlockType::Z => (255, 0, 0),
+            BlockType::J => (0, 0, 255),
+            BlockType::L => (255, 165, 0),
+            BlockType::T => (128, 0, 128),
         }
     }
 }
