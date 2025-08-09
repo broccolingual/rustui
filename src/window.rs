@@ -16,7 +16,7 @@ pub struct Window {
     terminal: Option<term::Terminal>,
     render_thread: Option<render::RenderThread>,
     fps_rx: Receiver<f64>,
-    pub fps: f64,
+    fps: f64,
     debug: bool,
 }
 

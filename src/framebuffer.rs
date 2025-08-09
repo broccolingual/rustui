@@ -99,7 +99,7 @@ impl Framebuffer {
             }
         };
         for (i, ch) in str.chars().enumerate() {
-            self.set_char(start_x + i, y, ch, style.clone());
+            self.set_char(start_x + i, y, ch, style);
         }
     }
 
@@ -110,21 +110,35 @@ impl Framebuffer {
 
         // 上下の線
         for x in 1..w - 1 {
-            self.set_char(x, 0, '─', style.clone());
-            self.set_char(x, h - 1, '─', style.clone());
+            self.set_char(x, 0, '─', style);
+            self.set_char(x, h - 1, '─', style);
         }
 
         // 左右の線
         for y in 1..h - 1 {
-            self.set_char(0, y, '│', style.clone());
-            self.set_char(w - 1, y, '│', style.clone());
+            self.set_char(0, y, '│', style);
+            self.set_char(w - 1, y, '│', style);
         }
 
         // 角の文字
-        self.set_char(0, 0, '┌', style.clone());
-        self.set_char(w - 1, 0, '┐', style.clone());
-        self.set_char(0, h - 1, '└', style.clone());
-        self.set_char(w - 1, h - 1, '┘', style.clone());
+        self.set_char(0, 0, '┌', style);
+        self.set_char(w - 1, 0, '┐', style);
+        self.set_char(0, h - 1, '└', style);
+        self.set_char(w - 1, h - 1, '┘', style);
+    }
+
+    /// バッファに縦線を描画
+    pub fn set_vline(&mut self, x: usize, y_start: usize, y_end: usize, style: term::Style) {
+        for y in y_start..=y_end {
+            self.set_char(x, y, '│', style);
+        }
+    }
+
+    /// バッファに横線を描画
+    pub fn set_hline(&mut self, y: usize, x_start: usize, x_end: usize, style: term::Style) {
+        for x in x_start..=x_end {
+            self.set_char(x, y, '─', style);
+        }
     }
 
     /// バッファの内容を結合
@@ -133,7 +147,7 @@ impl Framebuffer {
             for x in 0..other.width {
                 if self.check_range(x + x_offset, y + y_offset) {
                     let cell = &other.buffer[y][x];
-                    self.set_char(x + x_offset, y + y_offset, cell.ch, cell.style.clone());
+                    self.set_char(x + x_offset, y + y_offset, cell.ch, cell.style);
                 }
             }
         }
