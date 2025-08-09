@@ -1,4 +1,4 @@
-# rcurses
+# rustui
 
 A modern, safe, and ergonomic terminal UI library for Rust, inspired by ncurses but designed with Rust's ownership model and safety guarantees in mind.
 
@@ -17,13 +17,13 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rcurses = { path = "./lib" }  # or from crates.io when published
+rustui = "0.1.0"
 ```
 
 ### Basic Example
 
 ```rust
-use rcurses::*;
+use rustui::*;
 use std::time::Duration;
 use std::thread;
 
@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             let mut framebuffer = window.get_lock();
             framebuffer.clear();
-            framebuffer.set_str(10, 5, "Hello, rcurses!", style![Attr::BOLD, Color::Fg(2)]);
+            framebuffer.set_str(10, 5, "Hello, rustui!", style![Attr::BOLD, Color::Fg(2)]);
             framebuffer.set_border(style![Attr::NORMAL]);
         }
 
@@ -146,7 +146,7 @@ style![Attr::BOLD, Color::Fg(2), Color::Bg(0)]
 This repository includes a demo application that showcases the library's capabilities:
 
 ```bash
-cargo run --bin rust-tetris
+cargo run --example tetris
 ```
 
 The demo features:
@@ -158,6 +158,7 @@ The demo features:
 
 - `nix` (0.27+) - For Unix terminal control
 - `bitflags` (2.0+) - For attribute flag management
+- `rand`
 
 ## Platform Support
 
@@ -177,7 +178,6 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd rcurses
 
 # Build the library
 cargo build

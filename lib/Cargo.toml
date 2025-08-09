@@ -1,8 +1,0 @@
-[package]
-name = "rcurses"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-nix = { version = "0.27", features = ["term"] }
-bitflags = "2.0"

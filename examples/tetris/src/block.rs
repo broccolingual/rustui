@@ -1,4 +1,5 @@
-use rcurses::term;
+use rand::Rng;
+use rustui::term;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Pos {
@@ -36,7 +37,7 @@ impl BlockType {
                 BlockType::T,
             ]);
         }
-        let idx = rand::random::<usize>() % pool.len();
+        let idx = rand::rng().random_range(0..pool.len());
         pool.remove(idx)
     }
 

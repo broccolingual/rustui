@@ -11,16 +11,16 @@ use std::{
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct Attr: u16 {
-        const NORMAL    = 0b0000000000000001;
-        const BOLD      = 0b0000000000000010;
-        const THIN      = 0b0000000000000100;
-        const ITALIC    = 0b0000000000001000;
-        const UNDERLINE = 0b0000000000010000;
-        const BLINK     = 0b0000000000100000;
-        const FASTBLINK = 0b0000000001000000;
-        const INVERT    = 0b0000000010000000;
-        const HIDDEN    = 0b0000000100000000;
-        const REMOVE    = 0b0000001000000000;
+        const NORMAL    = 0b0000_0000_0000_0001;
+        const BOLD      = 0b0000_0000_0000_0010;
+        const THIN      = 0b0000_0000_0000_0100;
+        const ITALIC    = 0b0000_0000_0000_1000;
+        const UNDERLINE = 0b0000_0000_0001_0000;
+        const BLINK     = 0b0000_0000_0010_0000;
+        const FASTBLINK = 0b0000_0000_0100_0000;
+        const INVERT    = 0b0000_0001_0000_0000;
+        const HIDDEN    = 0b0000_0010_0000_0000;
+        const REMOVE    = 0b0000_0100_0000_0000;
     }
 }
 

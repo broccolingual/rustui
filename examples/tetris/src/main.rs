@@ -1,4 +1,4 @@
-use rcurses::*;
+use rustui::*;
 use std::{thread, time};
 
 pub mod block;
@@ -9,13 +9,13 @@ use core::*;
 
 const RENDERING_RATE: time::Duration = time::Duration::from_millis(16); // ms
 const INPUT_CAPTURING_RATE: time::Duration = time::Duration::from_millis(10); // ms
-const DROP_COUNTER_MAX: usize = 60; // 1 = 1 frame, 60 = 1 second
+const DROP_COUNTER_MAX: usize = 30; // 1 = 1 frame, 60 = 1 second
 const MOVING_AFTER_DROP_COUNTER_MAX: usize = 30; // 30 frames after drop
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut win = Window::new()?;
+    let mut win = Window::new(true)?;
     win.init()?;
-    let fps_rx = win.start(RENDERING_RATE);
+    win.start(RENDERING_RATE);
     let (mut key_listener, key_rx) = KeyListener::new(INPUT_CAPTURING_RATE);
 
     if win.width < 60 || win.height < 30 {
@@ -29,82 +29,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let x_center = win.width / 2;
     let y_center: usize = win.height / 2;
 
-    let mut fps: f64 = 0.0;
-    let mut last_key = None;
-    let mut info_frame = Framebuffer::new(32, 2);
-
-    {
-        let mut back_locked = win.get_lock();
-        back_locked.set_str(
-            x_center,
-            y_center - 4,
-            r" _____ _____ _____ ____  ___ ____ ",
-            style![Attr::BOLD, Color::Fg24(96)],
-            Align::Center,
-        );
-        back_locked.set_str(
-            x_center,
-            y_center - 3,
-            r"|_   _| ____|_   _|  _ \|_ _/ ___| ",
-            style![Attr::BOLD, Color::Fg24(96)],
-            Align::Center,
-        );
-        back_locked.set_str(
-            x_center,
-            y_center - 2,
-            r"  | | |  _|   | | | |_) || |\___ \ ",
-            style![Attr::BOLD, Color::Fg24(96)],
-            Align::Center,
-        );
-        back_locked.set_str(
-            x_center,
-            y_center - 1,
-            r"  | | | |___  | | |  _ < | | ___) |",
-            style![Attr::BOLD, Color::Fg24(96)],
-            Align::Center,
-        );
-        back_locked.set_str(
-            x_center,
-            y_center - 0,
-            r"  |_| |_____| |_| |_| \_\___|____/",
-            style![Attr::BOLD, Color::Fg24(96)],
-            Align::Center,
-        );
-        back_locked.set_border(style![Attr::NORMAL]);
-    }
-
-    thread::sleep(time::Duration::from_secs(2));
-
     let mut core = Core::new(DROP_COUNTER_MAX, MOVING_AFTER_DROP_COUNTER_MAX);
 
     loop {
-        if let Ok(v) = fps_rx.try_recv() {
-            fps = v;
-        }
-
-        info_frame.clear();
-        info_frame.set_str(
-            1,
-            0,
-            &format!("FPS: {:.2}", &fps),
-            style![Attr::ITALIC, Attr::NORMAL, Color::Fg24(74)],
-            Align::Left,
-        );
-        info_frame.set_str(
-            1,
-            1,
-            &format!("Key: {:?}", last_key),
-            style![Attr::ITALIC, Attr::NORMAL, Color::Fg24(64)],
-            Align::Left,
-        );
-        info_frame.set_color(Color::Bg24(235));
-
         if core.is_gameover {
             break;
         }
 
         if let Ok(key) = key_rx.try_recv() {
-            last_key = Some(key.clone());
             match key {
                 Key::Char('q') => break,
                 Key::Char('r') => {
@@ -132,25 +64,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         core.proc_before_draw();
 
         {
-            let mut back_locked = win.get_lock();
-            back_locked.clear();
-            back_locked.set_border(style![Attr::NORMAL]);
-            back_locked.combine(
+            let mut canvas = win.get_canvas();
+            canvas.set_border(style![Attr::NORMAL]);
+            canvas.combine(
                 &core.field_frame,
                 x_center - core.field_frame.width / 2,
                 y_center - core.field_frame.height / 2,
             );
-            back_locked.combine(
+            canvas.combine(
                 &core.holding_block_frame,
                 x_center - core.field_frame.width / 2 - core.holding_block_frame.width - 2,
                 y_center - core.field_frame.height / 2 + 1,
             );
-            back_locked.combine(
+            canvas.combine(
                 &core.next_block_frame,
                 x_center + core.field_frame.width / 2 + 2,
                 y_center - core.field_frame.height / 2 + 1,
             );
-            back_locked.combine(&info_frame, 2, 1);
         }
 
         core.proc_after_draw();
@@ -160,10 +90,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if core.is_gameover {
         {
-            let mut back_locked = win.get_lock();
-            back_locked.clear();
-            back_locked.set_border(style![Attr::NORMAL]);
-            back_locked.set_str(
+            let mut canvas = win.get_canvas();
+            canvas.set_border(style![Attr::NORMAL]);
+            canvas.set_str(
                 x_center,
                 y_center,
                 "G A M E  O V E R",

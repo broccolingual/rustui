@@ -1,4 +1,4 @@
-use rcurses::*;
+use rustui::*;
 
 use crate::block;
 use crate::field;
@@ -179,7 +179,7 @@ impl Core {
             style![Attr::BOLD],
             Align::Center,
         );
-        if let Some(mut block) = &self.holding_block {
+        if let &Some(mut block) = &self.holding_block {
             block.init(block::Pos::new(2, 2));
             Self::draw_block_to_buffer(&mut self.holding_block_frame, &block);
         }

@@ -34,7 +34,7 @@ pub enum Align {
 pub struct Framebuffer {
     pub width: usize,
     pub height: usize,
-    pub buffer: Vec<Vec<Cell>>,
+    buffer: Vec<Vec<Cell>>,
 }
 
 impl Framebuffer {
@@ -58,7 +58,7 @@ impl Framebuffer {
     }
 
     /// バッファの全てのセルに色を設定
-    pub fn set_color(&mut self, color: term::Color) {
+    pub fn set_color_all(&mut self, color: term::Color) {
         for row in &mut self.buffer {
             for cell in row {
                 cell.style = cell.style | color;
@@ -83,8 +83,20 @@ impl Framebuffer {
     pub fn set_str(&mut self, x: usize, y: usize, str: &str, style: term::Style, align: Align) {
         let start_x = match align {
             Align::Left => x,
-            Align::Center => x - str.len() / 2,
-            Align::Right => x - str.len(),
+            Align::Center => {
+                if str.len() > x {
+                    0
+                } else {
+                    x - str.len() / 2
+                }
+            }
+            Align::Right => {
+                if str.len() > x {
+                    0
+                } else {
+                    x - str.len()
+                }
+            }
         };
         for (i, ch) in str.chars().enumerate() {
             self.set_char(start_x + i, y, ch, style.clone());
@@ -115,6 +127,7 @@ impl Framebuffer {
         self.set_char(w - 1, h - 1, '┘', style.clone());
     }
 
+    /// バッファの内容を結合
     pub fn combine(&mut self, other: &Framebuffer, x_offset: usize, y_offset: usize) {
         for y in 0..other.height {
             for x in 0..other.width {
