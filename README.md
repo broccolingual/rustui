@@ -24,45 +24,49 @@ rustui = "0.1.0"
 
 ```rust
 use rustui::*;
-use std::time::Duration;
-use std::thread;
+use std::{thread, time};
+
+const RENDERING_RATE: time::Duration = time::Duration::from_millis(16);
+const INPUT_CAPTURING_RATE: time::Duration = time::Duration::from_millis(10); // ms
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Create and initialize window
-    let mut window = Window::new()?;
-    window.init()?;
-    
-    // Start rendering thread
-    let fps_rx = window.start(Duration::from_millis(16)); // ~60 FPS
-    
-    // Start input listener
-    let (mut key_listener, key_rx) = KeyListener::new(Duration::from_millis(15));
+    let mut win = Window::new(false)?;
+    win.init()?; // Initialize the window (enable raw mode)
+    win.start(RENDERING_RATE); // Start the rendering thread
 
-    // Main application loop
+    // Create a key listener
+    let (mut key_listener, key_rx) = KeyListener::new(INPUT_CAPTURING_RATE);
+
+    let x_center = win.width / 2;
+    let y_center: usize = win.height / 2;
+
     loop {
-        // Handle input
+        // Check for key presses
         if let Ok(key) = key_rx.try_recv() {
             match key {
                 Key::Char('q') => break,
-                Key::ArrowUp => { /* handle up arrow */ }
-                _ => {}
+                _ => (),
             }
         }
 
-        // Update display
+        // Render the frame
         {
-            let mut framebuffer = window.get_lock();
-            framebuffer.clear();
-            framebuffer.set_str(10, 5, "Hello, rustui!", style![Attr::BOLD, Color::Fg(2)]);
-            framebuffer.set_border(style![Attr::NORMAL]);
+            let mut canvas = win.get_canvas();
+            canvas.set_border(style![term::Attr::BOLD]);
+            canvas.set_str(
+                x_center,
+                y_center,
+                "Hello, world! (Press 'q' to quit)",
+                style![term::Attr::ITALIC, term::Color::FgRgb(128, 255, 128)],
+                Align::Center,
+            );
         }
 
-        thread::sleep(Duration::from_millis(16));
+        thread::sleep(time::Duration::from_millis(1)); // Sleep to prevent high CPU usage
     }
 
-    // Cleanup
-    key_listener.stop()?;
-    window.end()?;
+    key_listener.stop()?; // Stop the key listener
+    win.end()?; // Restore terminal state
     Ok(())
 }
 ```
