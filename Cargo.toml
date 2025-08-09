@@ -1,6 +1,6 @@
 [package]
 name = "rustui"
-version = "0.1.1"
+version = "0.1.11"
 authors = ["Broccolingual"]
 description = "TUI library for Linux and Unix-like systems"
 repository = "https://github.com/broccolingual/rustui"
@@ -8,7 +8,7 @@ license = "MIT"
 keywords = ["cli", "terminal", "input", "color", "linux"]
 exclude = ["target", "Cargo.lock"]
 readme = "README.md"
-edition = "2024"
+edition = "2021"
 categories = ["command-line-interface", "command-line-utilities"]
 
 [lib]
