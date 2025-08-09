@@ -21,7 +21,7 @@ pub enum Key {
 }
 
 impl Key {
-    /// 矢印キーかどうかを判定
+    /// Check whether the key is an arrow key.
     pub fn is_arrow(&self) -> bool {
         matches!(
             self,
@@ -29,18 +29,18 @@ impl Key {
         )
     }
 
-    /// 特殊キー（矢印キーやHome/End等）かどうかを判定
+    /// Check whether the key is a special key (arrow keys, Home/End, etc.).
     pub fn is_special(&self) -> bool {
         !matches!(self, Key::Char(_) | Key::Unknown)
     }
 
-    /// 印刷可能な文字かどうかを判定
+    /// Check whether the key is a printable character.
     pub fn is_printable(&self) -> bool {
         matches!(self, Key::Char(c) if c.is_ascii_graphic() || *c == ' ')
     }
 }
 
-/// エスケープシーケンスを解析してKeyを返す
+/// Parse the escape sequence and return the corresponding Key.
 fn parse_escape_sequence(buf: &[u8], n: usize) -> Key {
     if n < 3 {
         return Key::Escape;
@@ -61,7 +61,7 @@ fn parse_escape_sequence(buf: &[u8], n: usize) -> Key {
     }
 }
 
-/// エラーハンドリングを明示的に行うバージョン
+/// Read a key from standard input.
 fn read_key() -> io::Result<Option<Key>> {
     let mut stdin = io::stdin().lock();
     let mut buf = [0u8; 4];
@@ -94,18 +94,18 @@ impl KeyListener {
         let _ = thread::spawn(move || {
             loop {
                 if stop_rx.try_recv().is_ok() {
-                    break; // 停止信号を受け取ったらループを抜ける
+                    break; // Stop the loop if a stop signal is received
                 }
 
                 match read_key() {
                     Ok(Some(key)) => {
                         if key_tx.send(key).is_err() {
-                            break; // 受信側がドロップされた場合
+                            break; // Stop the loop if the receiver is dropped
                         }
                     }
-                    Ok(None) => { // キー入力なし
+                    Ok(None) => { // No key input
                     }
-                    Err(_) => { // 読み取りエラー、継続
+                    Err(_) => { // Read error, continue
                     }
                 }
                 thread::sleep(rate);
@@ -116,12 +116,12 @@ impl KeyListener {
 
     pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(tx) = self.stop_signal.take() {
-            tx.send(())?; // 停止信号を送信
+            tx.send(())?; // Send stop signal
         }
         if let Some(handle) = self.handle.take() {
             handle
                 .join()
-                .map_err(|_| "Failed to join key listener thread")?; // スレッドの終了を待機
+                .map_err(|_| "Failed to join key listener thread")?; // Wait for the thread to finish
         }
         Ok(())
     }

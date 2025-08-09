@@ -11,7 +11,6 @@ pub struct Cell {
 }
 
 impl Cell {
-    /// コンストラクタ
     pub fn new() -> Self {
         Self {
             ch: ' ',
@@ -42,7 +41,6 @@ pub struct Framebuffer {
 }
 
 impl Framebuffer {
-    /// コンストラクタ
     pub fn new(width: usize, height: usize) -> Self {
         let buffer = vec![Cell::default(); width * height];
         Self {
@@ -52,19 +50,19 @@ impl Framebuffer {
         }
     }
 
-    /// x, yがフレームバッファのサイズに収まっているかをチェック
+    /// Check whether x and y fit within the frame buffer size.
     pub fn check_range(&self, x: usize, y: usize) -> bool {
         x < self.width && y < self.height
     }
 
-    /// バッファを初期化
+    /// Initialize the buffer.
     pub fn clear(&mut self) {
         for cell in &mut self.buffer {
             *cell = Cell::default();
         }
     }
 
-    /// バッファに文字と属性を書き込み
+    /// Write a character and its attributes to the buffer.
     pub fn set_char(
         &mut self,
         x: usize,
@@ -83,7 +81,7 @@ impl Framebuffer {
         }
     }
 
-    /// バッファに文字列と属性を書き込み
+    /// Write a string and its attributes to the buffer.
     pub fn set_str(
         &mut self,
         x: usize,
@@ -116,31 +114,31 @@ impl Framebuffer {
         }
     }
 
-    /// バッファのサイズの外枠を描画
+    /// Draw the border around the buffer.
     pub fn set_border(&mut self, attrs: term::Attr, fg: term::Color, bg: term::Color) {
         let w = self.width;
         let h = self.height;
 
-        // 上下の線
+        // Draw the top and bottom borders
         for x in 1..w - 1 {
             self.set_char(x, 0, '─', attrs, fg, bg);
             self.set_char(x, h - 1, '─', attrs, fg, bg);
         }
 
-        // 左右の線
+        // Draw the left and right borders
         for y in 1..h - 1 {
             self.set_char(0, y, '│', attrs, fg, bg);
             self.set_char(w - 1, y, '│', attrs, fg, bg);
         }
 
-        // 角の文字
+        // Draw the corners
         self.set_char(0, 0, '┌', attrs, fg, bg);
         self.set_char(w - 1, 0, '┐', attrs, fg, bg);
         self.set_char(0, h - 1, '└', attrs, fg, bg);
         self.set_char(w - 1, h - 1, '┘', attrs, fg, bg);
     }
 
-    /// バッファに縦線を描画
+    /// Draw a vertical line in the buffer.
     pub fn set_vline(
         &mut self,
         x: usize,
@@ -155,7 +153,7 @@ impl Framebuffer {
         }
     }
 
-    /// バッファに横線を描画
+    /// Draw a horizontal line in the buffer.
     pub fn set_hline(
         &mut self,
         y: usize,
@@ -170,7 +168,7 @@ impl Framebuffer {
         }
     }
 
-    /// バッファの内容を結合
+    /// Combine the contents of the buffer.
     pub fn combine(&mut self, other: &Framebuffer, x_offset: usize, y_offset: usize) {
         for y in 0..other.height {
             for x in 0..other.width {
@@ -182,7 +180,7 @@ impl Framebuffer {
         }
     }
 
-    /// バックバッファとフロントバッファを比較し，差分を描画．フロントバッファをバックバッファの内容で更新
+    /// Compare the back buffer and front buffer, draw the differences, and update the front buffer with the contents of the back buffer.
     pub fn refresh(&mut self, back_fb: &Framebuffer) -> io::Result<()> {
         if self.height != back_fb.height || self.width != back_fb.width {
             return Err(io::Error::new(
@@ -191,15 +189,15 @@ impl Framebuffer {
             ));
         }
 
-        let mut stdout_lock = io::stdout().lock(); // 標準出力をロック
+        let mut stdout_lock = io::stdout().lock(); // Lock standard output
         let mut prev_attrs = Attr::NORMAL;
         let mut prev_fg: Color = Color::new();
         let mut prev_bg: Color = Color::new();
 
-        stdout_lock.write_all("\x1B[0m".as_bytes())?; // すべての属性をリセット
+        stdout_lock.write_all("\x1B[0m".as_bytes())?; // Reset all attributes
         stdout_lock.flush()?;
 
-        // 変更があるセルを最初に収集
+        // Collect all changed cells first
         let mut changes = Vec::new();
         for y in 0..self.height {
             for x in 0..self.width {
@@ -213,11 +211,11 @@ impl Framebuffer {
             }
         }
 
-        // セルごとの出力を行う
+        // Draw the output for each changed cell
         for (x, y, idx, back) in changes {
             let mut cell_output = String::new();
 
-            cell_output.push_str(&format!("\x1B[{};{}H", y + 1, x + 1)); // 対象の座標に移動
+            cell_output.push_str(&format!("\x1B[{};{}H", y + 1, x + 1)); // Move to the target coordinates
             if prev_attrs != back.attrs {
                 prev_attrs = back.attrs;
                 cell_output.push_str(&back.attrs.to_ansi());
@@ -244,12 +242,12 @@ impl Framebuffer {
                     cell_output.push_str("\x1B[49m"); // Reset background color
                 }
             }
-            cell_output.push(back.ch); // 文字を追加
+            cell_output.push(back.ch); // Add the character
 
             stdout_lock.write_all(cell_output.as_bytes())?;
-            stdout_lock.flush()?; // フラッシュして出力を反映
+            stdout_lock.flush()?; // Flush to reflect the output
 
-            self.buffer[idx] = back.clone(); // フロントバッファにCellをコピー
+            self.buffer[idx] = back.clone(); // Copy the Cell to the front buffer
         }
         Ok(())
     }

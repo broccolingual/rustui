@@ -1,10 +1,9 @@
 # rustui
 
-A modern, safe, and ergonomic terminal UI library for Rust, inspired by ncurses but designed with Rust's ownership model and safety guarantees in mind.
+A modern, safe, and ergonomic terminal UI library for Rust, designed with Rust's ownership model and safety guarantees in mind.
 
 ## Features
 
-- **Memory Safe**: Built entirely in safe Rust with RAII patterns
 - **Cross-platform**: Works on Unix-like systems (Linux, macOS, etc.)
 - **Double Buffering**: Efficient rendering with differential updates
 - **Rich Text Styling**: Support for colors, attributes (bold, italic, underline, etc.)
@@ -17,7 +16,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rustui = "0.1.0"
+rustui = "0.1.1"
 ```
 
 ### Basic Example

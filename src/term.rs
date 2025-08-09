@@ -24,6 +24,7 @@ bitflags! {
 }
 
 impl Attr {
+    /// Convert attributes to ANSI escape codes
     pub fn to_ansi(&self) -> String {
         let mut ansi = String::from("\x1B[");
         if self.is_empty() {
@@ -78,6 +79,7 @@ impl ColorExt for Color {
         (-1, -1, -1)
     }
 
+    /// Check if the color is valid
     fn is_valid(&self) -> bool {
         self.0 >= 0 && self.0 <= 255 && self.1 >= 0 && self.1 <= 255 && self.2 >= 0 && self.2 <= 255
     }
@@ -89,7 +91,8 @@ pub struct Terminal {
 }
 
 impl Terminal {
-    pub fn enable(fd: i32) -> nix::Result<Self> {
+    /// Enable raw mode
+    pub fn enable_raw_mode(fd: i32) -> nix::Result<Self> {
         let borrowed_fd = unsafe { BorrowedFd::borrow_raw(fd) };
         let original = termios::tcgetattr(borrowed_fd)?;
         let mut raw = original.clone();
@@ -101,6 +104,7 @@ impl Terminal {
         Ok(Terminal { fd, original })
     }
 
+    /// Set the terminal to non-blocking mode
     pub fn set_nonblocking(&self) -> nix::Result<()> {
         unsafe {
             let flags = libc::fcntl(self.fd, libc::F_GETFL);
@@ -115,37 +119,43 @@ impl Terminal {
         Ok(())
     }
 
-    // 静的なターミナル制御メソッド
+    /// Show the cursor
     pub fn show_cursor() -> io::Result<()> {
         print!("\x1B[?25h");
         io::stdout().flush()
     }
 
+    /// Hide the cursor
     pub fn hide_cursor() -> io::Result<()> {
         print!("\x1B[?25l");
         io::stdout().flush()
     }
 
+    /// Clear the screen
     pub fn clear() -> io::Result<()> {
         print!("\x1B[2J");
         io::stdout().flush()
     }
 
+    /// Move the cursor to the home position
     pub fn move_to_home() -> io::Result<()> {
         print!("\x1B[H");
         io::stdout().flush()
     }
 
+    /// Enable alternative screen
     pub fn enable_alternative_screen() -> io::Result<()> {
         print!("\x1B[?1049h");
         io::stdout().flush()
     }
 
+    /// Disable alternative screen
     pub fn disable_alternative_screen() -> io::Result<()> {
         print!("\x1B[?1049l");
         io::stdout().flush()
     }
 
+    /// Get the terminal size
     pub fn get_size() -> io::Result<(usize, usize)> {
         let fd = std::io::stdout().as_raw_fd();
         let mut ws = libc::winsize {

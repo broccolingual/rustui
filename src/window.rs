@@ -20,7 +20,6 @@ pub struct Window {
 }
 
 impl Window {
-    /// コンストラクタ
     pub fn new(debug: bool) -> Result<Self, Box<dyn std::error::Error>> {
         let (width, height) = term::Terminal::get_size()?;
         let front_fb = Arc::new(Mutex::new(framebuffer::Framebuffer::new(width, height)));
@@ -38,10 +37,10 @@ impl Window {
         })
     }
 
-    /// Rawモードへの変更
+    /// Change to raw mode
     pub fn init(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let fd = io::stdin().as_raw_fd();
-        let terminal = term::Terminal::enable(fd)?;
+        let terminal = term::Terminal::enable_raw_mode(fd)?;
         terminal.set_nonblocking()?;
 
         term::Terminal::enable_alternative_screen()?;
@@ -51,14 +50,14 @@ impl Window {
         Ok(())
     }
 
-    /// 描画スレッドの開始
+    /// Start the rendering thread
     pub fn start(&mut self, rate: time::Duration) {
         let fps_rx =
             render::RenderThread::new(Arc::clone(&self.front_fb), Arc::clone(&self.back_fb), rate);
         self.fps_rx = fps_rx;
     }
 
-    /// バッファのMutexの取得
+    /// Get a mutable reference to the buffer's Mutex
     pub fn get_canvas(&mut self) -> MutexGuard<'_, framebuffer::Framebuffer> {
         let fps = self.get_fps();
         let mut canvas = self.back_fb.lock().unwrap();
@@ -77,13 +76,14 @@ impl Window {
         canvas
     }
 
-    /// ターミナルの復帰
+    /// Restore the terminal
     pub fn end(&mut self) -> io::Result<()> {
         term::Terminal::show_cursor()?;
         term::Terminal::disable_alternative_screen()?;
         Ok(())
     }
 
+    /// Get the current FPS
     pub fn get_fps(&mut self) -> f64 {
         if let Ok(fps) = self.fps_rx.try_recv() {
             self.fps = fps;

@@ -29,17 +29,17 @@ impl RenderThread {
 
             loop {
                 if stop_rx.try_recv().is_ok() {
-                    break; // 停止信号を受け取ったらループを抜ける
+                    break; // Stop the loop if a stop signal is received
                 }
 
-                // フレームレート制御
+                // Frame rate control
                 let elapsed_since_frame = last_frame_time.elapsed();
                 if elapsed_since_frame < rate {
                     thread::sleep(rate - elapsed_since_frame);
                 }
                 last_frame_time = time::Instant::now();
 
-                // 描画処理
+                // Rendering process
                 match back_fb.try_lock() {
                     Ok(back_locked) => {
                         if let Ok(mut front_locked) = front_fb.try_lock() {
@@ -50,7 +50,7 @@ impl RenderThread {
                         }
                     }
                     Err(TryLockError::WouldBlock) => {
-                        // バックバッファがロックされている場合はスキップ
+                        // Skip if the back buffer is locked
                         thread::sleep(time::Duration::from_millis(1));
                         continue;
                     }
@@ -59,13 +59,12 @@ impl RenderThread {
                     }
                 }
 
-                // FPS計算と送信
+                // FPS calculation and sending
                 let elapsed = last_sec.elapsed();
                 if elapsed >= time::Duration::from_secs(1) {
                     let fps = frame_count as f64 / elapsed.as_secs_f64();
                     if fps_tx.send(fps).is_err() {
-                        // 受信側が閉じられた場合は終了
-                        break;
+                        break; // Stop the loop if the receiver is closed
                     }
                     frame_count = 0;
                     last_sec = time::Instant::now();
@@ -77,10 +76,10 @@ impl RenderThread {
 
     pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(tx) = self.stop_signal.take() {
-            tx.send(())?; // 停止信号を送信
+            tx.send(())?; // Send stop signal
         }
         if let Some(handle) = self.handle.take() {
-            handle.join().map_err(|_| "Failed to join render thread")?; // スレッドの終了を待機
+            handle.join().map_err(|_| "Failed to join render thread")?; // Wait for the thread to finish
         }
         Ok(())
     }
