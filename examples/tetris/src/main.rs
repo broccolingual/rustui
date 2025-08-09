@@ -16,11 +16,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut win = Window::new(true)?;
     win.init()?;
     win.start(RENDERING_RATE);
-    let (mut key_listener, key_rx) = KeyListener::new(INPUT_CAPTURING_RATE);
+    let key_rx = KeyListener::new(INPUT_CAPTURING_RATE);
 
     if win.width < 60 || win.height < 30 {
-        key_listener.stop()?;
-        win.end()?;
         return Err(Box::from(
             "Window size is too small. Minimum size is 60x30.",
         ));
@@ -104,8 +102,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         thread::sleep(time::Duration::from_secs(2));
     }
-
-    key_listener.stop()?;
-    win.end()?;
     Ok(())
 }

@@ -87,11 +87,11 @@ pub struct KeyListener {
 }
 
 impl KeyListener {
-    pub fn new(rate: Duration) -> (Self, Receiver<Key>) {
-        let (key_tx, key_rx) = mpsc::channel();
-        let (stop_tx, stop_rx) = mpsc::channel();
+    pub fn new(rate: Duration) -> Receiver<Key> {
+        let (key_tx, key_rx): (Sender<Key>, Receiver<Key>) = mpsc::channel();
+        let (_, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
 
-        let handle = thread::spawn(move || {
+        let _ = thread::spawn(move || {
             loop {
                 if stop_rx.try_recv().is_ok() {
                     break; // 停止信号を受け取ったらループを抜ける
@@ -111,14 +111,7 @@ impl KeyListener {
                 thread::sleep(rate);
             }
         });
-
-        (
-            KeyListener {
-                handle: Some(handle),
-                stop_signal: Some(stop_tx),
-            },
-            key_rx,
-        )
+        key_rx
     }
 
     pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -136,6 +129,8 @@ impl KeyListener {
 
 impl Drop for KeyListener {
     fn drop(&mut self) {
-        let _ = self.stop();
+        if let Err(e) = self.stop() {
+            eprintln!("Error stopping key listener: {}", e);
+        }
     }
 }

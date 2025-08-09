@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     win.start(RENDERING_RATE); // Start the rendering thread
 
     // Create a key listener
-    let (mut key_listener, key_rx) = KeyListener::new(INPUT_CAPTURING_RATE);
+    let key_rx = KeyListener::new(INPUT_CAPTURING_RATE);
 
     let x_center = win.width / 2;
     let y_center: usize = win.height / 2;
@@ -66,9 +66,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         thread::sleep(time::Duration::from_millis(100)); // Sleep to prevent high CPU usage
     }
-
-    key_listener.stop()?; // Stop the key listener
-    win.end()?; // Restore terminal state
     Ok(())
 }
 ```

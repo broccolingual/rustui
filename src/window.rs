@@ -14,7 +14,6 @@ pub struct Window {
     front_fb: Arc<Mutex<framebuffer::Framebuffer>>,
     back_fb: Arc<Mutex<framebuffer::Framebuffer>>,
     terminal: Option<term::Terminal>,
-    render_thread: Option<render::RenderThread>,
     fps_rx: Receiver<f64>,
     fps: f64,
     debug: bool,
@@ -33,7 +32,6 @@ impl Window {
             front_fb,
             back_fb,
             terminal: None,
-            render_thread: None,
             fps_rx,
             fps: 0.0,
             debug,
@@ -55,9 +53,8 @@ impl Window {
 
     /// 描画スレッドの開始
     pub fn start(&mut self, rate: time::Duration) {
-        let (render_thread, fps_rx) =
+        let fps_rx =
             render::RenderThread::new(Arc::clone(&self.front_fb), Arc::clone(&self.back_fb), rate);
-        self.render_thread = Some(render_thread);
         self.fps_rx = fps_rx;
     }
 
@@ -84,9 +81,6 @@ impl Window {
     pub fn end(&mut self) -> io::Result<()> {
         term::Terminal::show_cursor()?;
         term::Terminal::disable_alternative_screen()?;
-
-        self.terminal = None; // Terminalの Drop トレイトが自動的にrawモードを無効化する
-        self.render_thread = None; // RenderThreadのDropトレイトが自動的にスレッドを停止する
         Ok(())
     }
 
@@ -95,5 +89,13 @@ impl Window {
             self.fps = fps;
         }
         self.fps
+    }
+}
+
+impl Drop for Window {
+    fn drop(&mut self) {
+        if let Err(e) = self.end() {
+            eprintln!("Error restoring terminal state: {}", e);
+        }
     }
 }

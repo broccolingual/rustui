@@ -1,7 +1,7 @@
 use std::sync::TryLockError;
 use std::sync::{
-    mpsc::{self, Receiver, Sender},
     Arc, Mutex,
+    mpsc::{self, Receiver, Sender},
 };
 use std::thread;
 use std::time;
@@ -18,11 +18,11 @@ impl RenderThread {
         front_fb: Arc<Mutex<framebuffer::Framebuffer>>,
         back_fb: Arc<Mutex<framebuffer::Framebuffer>>,
         rate: time::Duration,
-    ) -> (Self, Receiver<f64>) {
+    ) -> Receiver<f64> {
         let (fps_tx, fps_rx): (Sender<f64>, Receiver<f64>) = mpsc::channel();
-        let (stop_tx, stop_rx) = mpsc::channel();
+        let (_, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
 
-        let handle = thread::spawn(move || {
+        let _ = thread::spawn(move || {
             let mut last_sec = time::Instant::now();
             let mut frame_count = 0;
             let mut last_frame_time = time::Instant::now();
@@ -72,14 +72,7 @@ impl RenderThread {
                 }
             }
         });
-
-        (
-            RenderThread {
-                handle: Some(handle),
-                stop_signal: Some(stop_tx),
-            },
-            fps_rx,
-        )
+        fps_rx
     }
 
     pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
