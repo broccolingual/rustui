@@ -12,15 +12,6 @@ A modern, safe, and ergonomic terminal UI library for Rust, designed with Rust's
 
 ## Quick Start
 
-Add this to your `Cargo.toml`:
-
-```toml
-[dependencies]
-rustui = "0.1.1"
-```
-
-### Basic Example
-
 ```rust
 use rustui::*;
 use std::{thread, time};
@@ -90,12 +81,6 @@ cargo run --example colors
 ```bash
 cargo run --example tetris
 ```
-
-## Dependencies
-
-- `nix` (0.30.+) - For Unix terminal control
-- `bitflags` (2.9+) - For attribute flag management
-- `rand` (0.9+)
 
 ## Platform Support
 
