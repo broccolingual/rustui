@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let key_rx = KeyListener::new(INPUT_CAPTURING_RATE);
 
     let x_center = win.width / 2;
-    let y_center: usize = win.height / 2;
+    let y_center = win.height / 2;
 
     loop {
         // Check for key presses

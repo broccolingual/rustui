@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let x_center = win.width / 2;
-    let y_center: usize = win.height / 2;
+    let y_center = win.height / 2;
 
     let mut core = Core::new(DROP_COUNTER_MAX, MOVING_AFTER_DROP_COUNTER_MAX);
 

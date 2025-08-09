@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crate::{Attr, Color, ColorExt, term};
+use crate::term::{self, ColorExt};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Cell {
@@ -14,9 +14,9 @@ impl Cell {
     pub fn new() -> Self {
         Self {
             ch: ' ',
-            attrs: Attr::NORMAL,
-            fg: Color::new(),
-            bg: Color::new(),
+            attrs: term::Attr::NORMAL,
+            fg: term::Color::new(),
+            bg: term::Color::new(),
         }
     }
 }
@@ -190,9 +190,9 @@ impl Framebuffer {
         }
 
         let mut stdout_lock = io::stdout().lock(); // Lock standard output
-        let mut prev_attrs = Attr::NORMAL;
-        let mut prev_fg: Color = Color::new();
-        let mut prev_bg: Color = Color::new();
+        let mut prev_attrs = term::Attr::NORMAL;
+        let mut prev_fg: term::Color = term::Color::new();
+        let mut prev_bg: term::Color = term::Color::new();
 
         stdout_lock.write_all("\x1B[0m".as_bytes())?; // Reset all attributes
         stdout_lock.flush()?;
