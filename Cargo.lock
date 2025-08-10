@@ -114,7 +114,7 @@ dependencies = [
 
 [[package]]
 name = "rustui"
-version = "0.1.20"
+version = "0.2.0"
 dependencies = [
  "bitflags",
  "nix",
