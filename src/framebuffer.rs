@@ -63,15 +63,7 @@ impl Framebuffer {
     }
 
     /// Write a character and its attributes to the buffer.
-    pub fn set_char(
-        &mut self,
-        x: usize,
-        y: usize,
-        ch: char,
-        attrs: Attr,
-        fg: Color,
-        bg: Color,
-    ) {
+    pub fn set_char(&mut self, x: usize, y: usize, ch: char, attrs: Attr, fg: Color, bg: Color) {
         if self.check_range(x, y) {
             let idx = y * self.width + x;
             self.buffer[idx].ch = ch;

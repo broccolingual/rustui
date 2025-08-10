@@ -64,7 +64,6 @@ impl Attr {
 
 pub type Color = (i32, i32, i32);
 
-#[doc(hidden)]
 pub trait ColorExt {
     fn new() -> Self;
     fn is_valid(&self) -> bool;
