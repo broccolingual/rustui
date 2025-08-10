@@ -121,7 +121,7 @@ impl Core {
                 pos.x as usize * 2 + 1,
                 pos.y as usize + 1,
                 "  ",
-                term::Attr::NORMAL,
+                Attr::NORMAL,
                 (255, 255, 255),
                 block.get_color(),
                 Align::Left,
@@ -132,19 +132,19 @@ impl Core {
     fn update_field_frame(&mut self) {
         self.field_frame.clear();
         self.field_frame
-            .set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
+            .set_border(Attr::NORMAL, (255, 255, 255), Color::new());
         self.field_frame.set_str(
             0,
             0,
             "                      ",
-            term::Attr::NORMAL,
+            Attr::NORMAL,
             (255, 255, 255),
             Color::new(),
             Align::Left,
         );
         for y in 0..field::FIELD_HEIGHT {
             for x in 0..field::FIELD_WIDTH {
-                let color: term::Color;
+                let color: Color;
                 match self.field.get_block(x, y) {
                     Some(block_type) => color = block_type.get_color(),
                     None => color = Color::new(),
@@ -154,7 +154,7 @@ impl Core {
                         x * 2 + 1,
                         y + 1,
                         "──",
-                        term::Attr::NORMAL,
+                        Attr::NORMAL,
                         (255, 255, 255),
                         color,
                         Align::Left,
@@ -165,7 +165,7 @@ impl Core {
                     x * 2 + 1,
                     y + 1,
                     "  ",
-                    term::Attr::NORMAL,
+                    Attr::NORMAL,
                     (255, 255, 255),
                     color,
                     Align::Left,
@@ -177,12 +177,12 @@ impl Core {
     fn update_next_block_frame(&mut self) {
         self.next_block_frame.clear();
         self.next_block_frame
-            .set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
+            .set_border(Attr::NORMAL, (255, 255, 255), Color::new());
         self.next_block_frame.set_str(
             self.next_block_frame.width / 2,
             0,
             "NEXT",
-            term::Attr::NORMAL,
+            Attr::NORMAL,
             (255, 255, 255),
             Color::new(),
             Align::Center,
@@ -194,12 +194,12 @@ impl Core {
     fn update_holding_block_frame(&mut self) {
         self.holding_block_frame.clear();
         self.holding_block_frame
-            .set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
+            .set_border(Attr::NORMAL, (255, 255, 255), Color::new());
         self.holding_block_frame.set_str(
             self.holding_block_frame.width / 2,
             0,
             "HOLD",
-            term::Attr::NORMAL,
+            Attr::NORMAL,
             (255, 255, 255),
             Color::new(),
             Align::Center,

@@ -38,15 +38,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Draw the frame
         win.draw(|canvas| {
-            canvas.set_border(term::Attr::NORMAL, (255, 255, 255), Color::new()); // Set border
+            canvas.set_border(Attr::NORMAL, (255, 255, 255), Color::new()); // Set border
             canvas.set_str(
                 x_center,
                 y_center,
                 "Hello, world! (Press 'q' to quit)",
-                term::Attr::NORMAL, // Set text decoration
-                (128, 255, 128),    // Set text color
-                (64, 64, 64),       // Set background color
-                Align::Center,      // Set text alignment to center
+                Attr::NORMAL,    // Set text decoration
+                (128, 255, 128), // Set text color
+                (64, 64, 64),    // Set background color
+                Align::Center,   // Set text alignment to center
             );
         });
 
@@ -70,6 +70,12 @@ cargo run --example hello_world
 
 ```bash
 cargo run --example colors
+```
+
+#### Inputs
+
+```bash
+cargo run --example inputs
 ```
 
 #### Tetris

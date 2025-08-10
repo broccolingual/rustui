@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         core.proc_before_draw();
 
         win.draw(|canvas| {
-            canvas.set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
+            canvas.set_border(Attr::NORMAL, (255, 255, 255), Color::new());
             canvas.combine(
                 &core.field_frame,
                 x_center - core.field_frame.width / 2,

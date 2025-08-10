@@ -12,6 +12,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let x_center = win.width / 2;
     let y_center = win.height / 2;
 
+    let mut key_last_pressed = None;
+
     loop {
         // Check for key presses
         if let Ok(key) = key_rx.try_recv() {
@@ -19,6 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Key::Char('q') => break,
                 _ => (),
             }
+            key_last_pressed = Some(key);
         }
 
         // Draw the frame
@@ -27,10 +30,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             canvas.set_str(
                 x_center,
                 y_center,
-                "Hello, world! (Press 'q' to quit)",
+                &format!(
+                    "You pressed: {:?} (Press 'q' to quit)",
+                    key_last_pressed.unwrap_or(Key::Unknown)
+                ),
                 Attr::NORMAL,    // Set text decoration
-                (128, 255, 128), // Set text color
-                (64, 64, 64),    // Set background color
+                (255, 255, 255), // Set text color
+                Color::new(),    // Set background color
                 Align::Center,   // Set text alignment to center
             );
         });

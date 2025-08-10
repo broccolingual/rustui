@@ -3,7 +3,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 use std::time::Duration;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Key {
     ArrowUp,
     ArrowDown,
@@ -17,6 +17,27 @@ pub enum Key {
     PageDown,
     Char(char),
     Escape,
+    F0,
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
+    F13,
+    F14,
+    F15,
+    F16,
+    F17,
+    F18,
+    F19,
+    F20,
     Unknown,
 }
 
@@ -51,12 +72,33 @@ fn parse_escape_sequence(buf: &[u8], n: usize) -> Key {
         [b'[', b'B', ..] => Key::ArrowDown,
         [b'[', b'C', ..] => Key::ArrowRight,
         [b'[', b'D', ..] => Key::ArrowLeft,
-        [b'[', b'H', ..] | [b'O', b'H', ..] => Key::Home,
-        [b'[', b'F', ..] | [b'O', b'F', ..] => Key::End,
+        [b'[', b'1', b'~', ..] | [b'[', b'H', ..] => Key::Home,
         [b'[', b'2', b'~', ..] => Key::Insert,
         [b'[', b'3', b'~', ..] => Key::Delete,
         [b'[', b'5', b'~', ..] => Key::PageUp,
         [b'[', b'6', b'~', ..] => Key::PageDown,
+        [b'[', b'4', b'~', ..] | [b'[', b'7', b'~', ..] | [b'[', b'F', ..] => Key::End,
+        [b'[', b'1', b'0', b'~', ..] => Key::F0,
+        [b'[', b'1', b'1', b'~', ..] | [b'[', b'1', b'P', ..] => Key::F1,
+        [b'[', b'1', b'2', b'~', ..] | [b'[', b'1', b'Q', ..] => Key::F2,
+        [b'[', b'1', b'3', b'~', ..] | [b'[', b'1', b'R', ..] => Key::F3,
+        [b'[', b'1', b'4', b'~', ..] | [b'[', b'1', b'S', ..] => Key::F4,
+        [b'[', b'1', b'5', b'~', ..] => Key::F5,
+        [b'[', b'1', b'7', b'~', ..] => Key::F6,
+        [b'[', b'1', b'8', b'~', ..] => Key::F7,
+        [b'[', b'1', b'9', b'~', ..] => Key::F8,
+        [b'[', b'2', b'0', b'~', ..] => Key::F9,
+        [b'[', b'2', b'1', b'~', ..] => Key::F10,
+        [b'[', b'2', b'3', b'~', ..] => Key::F11,
+        [b'[', b'2', b'4', b'~', ..] => Key::F12,
+        [b'[', b'2', b'5', b'~', ..] => Key::F13,
+        [b'[', b'2', b'6', b'~', ..] => Key::F14,
+        [b'[', b'2', b'8', b'~', ..] => Key::F15,
+        [b'[', b'2', b'9', b'~', ..] => Key::F16,
+        [b'[', b'3', b'1', b'~', ..] => Key::F17,
+        [b'[', b'3', b'2', b'~', ..] => Key::F18,
+        [b'[', b'3', b'3', b'~', ..] => Key::F19,
+        [b'[', b'3', b'4', b'~', ..] => Key::F20,
         _ => Key::Unknown,
     }
 }
@@ -64,7 +106,7 @@ fn parse_escape_sequence(buf: &[u8], n: usize) -> Key {
 /// Read a key from standard input.
 fn read_key() -> io::Result<Option<Key>> {
     let mut stdin = io::stdin().lock();
-    let mut buf = [0u8; 4];
+    let mut buf = [0u8; 5];
 
     match stdin.read(&mut buf) {
         Ok(0) => Ok(None),

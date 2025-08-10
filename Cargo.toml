@@ -29,5 +29,9 @@ name = "colors"
 path = "examples/colors.rs"
 
 [[example]]
+name = "inputs"
+path = "examples/inputs.rs"
+
+[[example]]
 name = "tetris"
 path = "examples/tetris/src/main.rs"
