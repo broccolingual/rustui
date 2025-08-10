@@ -22,16 +22,16 @@ const INPUT_CAPTURING_RATE: time::Duration = time::Duration::from_millis(10); //
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut win = Window::new(false)?;
     win.initialize(RENDERING_RATE)?; // Initialize the window and start the rendering thread
-    let key_rx = KeyListener::new(INPUT_CAPTURING_RATE); // Create a key listener
+    let input_rx = InputListener::new(INPUT_CAPTURING_RATE); // Create an input listener
 
     let x_center = win.width / 2;
     let y_center = win.height / 2;
 
     loop {
         // Check for key presses
-        if let Ok(key) = key_rx.try_recv() {
-            match key {
-                Key::Char('q') => break,
+        if let Ok(event) = input_rx.try_recv() {
+            match event {
+                InputEvent::Key(Key::Char('q')) => break,
                 _ => (),
             }
         }

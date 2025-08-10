@@ -3,6 +3,7 @@ use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 use std::time::Duration;
 
+/// Keyboard key events
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Key {
     ArrowUp,
@@ -41,6 +42,30 @@ pub enum Key {
     Unknown,
 }
 
+/// Mouse button events
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MouseButton {
+    Left,
+    Right,
+    Middle,
+    WheelUp,
+    WheelDown,
+}
+
+/// Mouse event
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum MouseEvent {
+    Press { button: MouseButton, x: u16, y: u16 },
+    Release { button: MouseButton, x: u16, y: u16 },
+}
+
+/// Input event
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum InputEvent {
+    Key(Key),
+    Mouse(MouseEvent),
+}
+
 impl Key {
     /// Check whether the key is an arrow key.
     pub fn is_arrow(&self) -> bool {
@@ -61,13 +86,73 @@ impl Key {
     }
 }
 
-/// Parse the escape sequence and return the corresponding Key.
-fn parse_escape_sequence(buf: &[u8], n: usize) -> Key {
-    if n < 3 {
-        return Key::Escape;
+/// Parse mouse event from SGR format: \x1B[<b;x;yM or \x1B[<b;x;ym
+fn parse_mouse_event(buf: &[u8], n: usize) -> Option<MouseEvent> {
+    if n < 6 || buf[0] != 0x1B || buf[1] != b'[' || buf[2] != b'<' {
+        return None;
     }
 
-    match &buf[1..] {
+    let data = std::str::from_utf8(&buf[3..n]).ok()?;
+    let is_press = data.ends_with('M');
+    let is_release = data.ends_with('m');
+
+    if !is_press && !is_release {
+        return None;
+    }
+
+    let coords = &data[..data.len() - 1]; // Remove M or m
+    let parts: Vec<&str> = coords.split(';').collect();
+
+    if parts.len() != 3 {
+        return None;
+    }
+
+    let button_code: u8 = parts[0].parse().ok()?;
+    let x: u16 = parts[1].parse().ok()?;
+    let y: u16 = parts[2].parse().ok()?;
+
+    let button = match button_code & 0x03 {
+        0 => MouseButton::Left,
+        1 => MouseButton::Middle,
+        2 => MouseButton::Right,
+        _ => return None,
+    };
+
+    // Check for wheel events
+    if button_code & 0x40 != 0 {
+        let wheel_button = if button_code & 0x01 == 0 {
+            MouseButton::WheelUp
+        } else {
+            MouseButton::WheelDown
+        };
+        return Some(MouseEvent::Press {
+            button: wheel_button,
+            x,
+            y,
+        });
+    }
+
+    if is_press {
+        Some(MouseEvent::Press { button, x, y })
+    } else {
+        Some(MouseEvent::Release { button, x, y })
+    }
+}
+
+/// Parse the escape sequence and return the corresponding Key or Mouse event.
+fn parse_escape_sequence(buf: &[u8], n: usize) -> InputEvent {
+    if n < 3 {
+        return InputEvent::Key(Key::Escape);
+    }
+
+    // Check for mouse event (SGR format)
+    if n >= 6 && buf[2] == b'<' {
+        if let Some(mouse_event) = parse_mouse_event(buf, n) {
+            return InputEvent::Mouse(mouse_event);
+        }
+    }
+
+    let key = match &buf[1..] {
         [b'[', b'A', ..] => Key::ArrowUp,
         [b'[', b'B', ..] => Key::ArrowDown,
         [b'[', b'C', ..] => Key::ArrowRight,
@@ -100,37 +185,38 @@ fn parse_escape_sequence(buf: &[u8], n: usize) -> Key {
         [b'[', b'3', b'3', b'~', ..] => Key::F19,
         [b'[', b'3', b'4', b'~', ..] => Key::F20,
         _ => Key::Unknown,
-    }
+    };
+    InputEvent::Key(key)
 }
 
-/// Read a key from standard input.
-fn read_key() -> io::Result<Option<Key>> {
+/// Read input (key or mouse) from standard input.
+fn read_key() -> io::Result<Option<InputEvent>> {
     let mut stdin = io::stdin().lock();
-    let mut buf = [0u8; 5];
+    let mut buf = [0u8; 32];
 
     match stdin.read(&mut buf) {
         Ok(0) => Ok(None),
         Ok(n) => {
-            let key = match buf[0] {
+            let event = match buf[0] {
                 0x1B => parse_escape_sequence(&buf, n),
-                c if c.is_ascii() => Key::Char(c as char),
-                _ => Key::Unknown,
+                c if c.is_ascii() => InputEvent::Key(Key::Char(c as char)),
+                _ => InputEvent::Key(Key::Unknown),
             };
-            Ok(Some(key))
+            Ok(Some(event))
         }
         Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => Ok(None),
         Err(e) => Err(e),
     }
 }
 
-pub struct KeyListener {
+pub struct InputListener {
     pub handle: Option<thread::JoinHandle<()>>,
     pub stop_signal: Option<Sender<()>>,
 }
 
-impl KeyListener {
-    pub fn new(rate: Duration) -> Receiver<Key> {
-        let (key_tx, key_rx): (Sender<Key>, Receiver<Key>) = mpsc::channel();
+impl InputListener {
+    pub fn new(rate: Duration) -> Receiver<InputEvent> {
+        let (input_tx, input_rx): (Sender<InputEvent>, Receiver<InputEvent>) = mpsc::channel();
         let (_, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
 
         let _ = thread::spawn(move || {
@@ -140,20 +226,18 @@ impl KeyListener {
                 }
 
                 match read_key() {
-                    Ok(Some(key)) => {
-                        if key_tx.send(key).is_err() {
+                    Ok(Some(event)) => {
+                        if input_tx.send(event).is_err() {
                             break; // Stop the loop if the receiver is dropped
                         }
                     }
-                    Ok(None) => { // No key input
-                    }
-                    Err(_) => { // Read error, continue
-                    }
+                    Ok(None) => {} // No input
+                    Err(_) => {}   // Read error, continue
                 }
                 thread::sleep(rate);
             }
         });
-        key_rx
+        input_rx
     }
 
     pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -169,10 +253,10 @@ impl KeyListener {
     }
 }
 
-impl Drop for KeyListener {
+impl Drop for InputListener {
     fn drop(&mut self) {
         if let Err(e) = self.stop() {
-            eprintln!("Error stopping key listener: {}", e);
+            eprintln!("Error stopping input listener: {}", e);
         }
     }
 }

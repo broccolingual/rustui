@@ -156,6 +156,30 @@ impl Terminal {
         io::stdout().flush()
     }
 
+    /// Enable mouse reporting
+    pub fn enable_mouse_reporting() -> io::Result<()> {
+        print!("{}", csi!("?1000h"));
+        io::stdout().flush()
+    }
+
+    /// Disable mouse reporting
+    pub fn disable_mouse_reporting() -> io::Result<()> {
+        print!("{}", csi!("?1000l"));
+        io::stdout().flush()
+    }
+
+    /// Enable SGR (Select Graphic Rendition) coordinates
+    pub fn enable_sgr_coords() -> io::Result<()> {
+        print!("{}", csi!("?1006h"));
+        io::stdout().flush()
+    }
+
+    /// Disable SGR (Select Graphic Rendition) coordinates
+    pub fn disable_sgr_coords() -> io::Result<()> {
+        print!("{}", csi!("?1006l"));
+        io::stdout().flush()
+    }
+
     /// Get the terminal size
     pub fn get_size() -> io::Result<(usize, usize)> {
         let fd = std::io::stdout().as_raw_fd();
