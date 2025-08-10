@@ -6,7 +6,7 @@ use std::sync::{
 use std::thread;
 use std::time;
 
-use crate::framebuffer;
+use crate::*;
 
 pub struct RenderThread {
     pub handle: Option<thread::JoinHandle<()>>,
@@ -15,9 +15,9 @@ pub struct RenderThread {
 
 impl RenderThread {
     pub fn new(
-        front_fb: Arc<Mutex<framebuffer::Framebuffer>>,
-        back_fb: Arc<Mutex<framebuffer::Framebuffer>>,
-        rate: time::Duration,
+        front_fb: Arc<Mutex<Framebuffer>>,
+        back_fb: Arc<Mutex<Framebuffer>>,
+        rendering_rate: time::Duration,
     ) -> Receiver<f64> {
         let (fps_tx, fps_rx): (Sender<f64>, Receiver<f64>) = mpsc::channel();
         let (_, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
@@ -34,8 +34,8 @@ impl RenderThread {
 
                 // Frame rate control
                 let elapsed_since_frame = last_frame_time.elapsed();
-                if elapsed_since_frame < rate {
-                    thread::sleep(rate - elapsed_since_frame);
+                if elapsed_since_frame < rendering_rate {
+                    thread::sleep(rendering_rate - elapsed_since_frame);
                 }
                 last_frame_time = time::Instant::now();
 
@@ -74,6 +74,7 @@ impl RenderThread {
         fps_rx
     }
 
+    /// Stop the render thread
     pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(tx) = self.stop_signal.take() {
             tx.send(())?; // Send stop signal

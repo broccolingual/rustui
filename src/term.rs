@@ -8,6 +8,7 @@ use std::{
 };
 
 /// Create a CSI (Control Sequence Introducer) escape sequence
+#[macro_export]
 macro_rules! csi {
     ($x:expr) => {
         String::from("\x1B[") + $x

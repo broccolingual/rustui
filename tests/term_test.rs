@@ -13,6 +13,11 @@ fn test_attr_to_ansi() {
 }
 
 #[test]
+fn test_csi_macro() {
+    assert_eq!(csi!("?25h"), "\x1B[?25h");
+}
+
+#[test]
 fn test_color_init() {
     let color = Color::new();
     assert_eq!(color, (-1, -1, -1));
