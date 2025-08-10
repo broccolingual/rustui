@@ -14,8 +14,7 @@ const MOVING_AFTER_DROP_COUNTER_MAX: usize = 30; // 30 frames after drop
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut win = Window::new(true)?;
-    win.init()?;
-    win.start(RENDERING_RATE);
+    win.initialize(RENDERING_RATE)?;
     let key_rx = KeyListener::new(INPUT_CAPTURING_RATE);
 
     if win.width < 60 || win.height < 30 {

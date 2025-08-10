@@ -38,6 +38,7 @@ impl Window {
     }
 
     /// Change to raw mode
+    #[deprecated(since = "0.1.11", note = "Use `initialize()` method instead")]
     pub fn init(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let fd = io::stdin().as_raw_fd();
         let terminal = term::Terminal::enable_raw_mode(fd)?;
@@ -51,10 +52,30 @@ impl Window {
     }
 
     /// Start the rendering thread
+    #[deprecated(since = "0.1.11", note = "Use `initialize()` method instead")]
     pub fn start(&mut self, rate: time::Duration) {
         let fps_rx =
             render::RenderThread::new(Arc::clone(&self.front_fb), Arc::clone(&self.back_fb), rate);
         self.fps_rx = fps_rx;
+    }
+
+    /// Initialize the window and start the rendering thread
+    pub fn initialize(
+        &mut self,
+        rendering_rate: time::Duration,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let fd = io::stdin().as_raw_fd();
+        let terminal = term::Terminal::enable_raw_mode(fd)?;
+        terminal.set_nonblocking()?;
+        term::Terminal::enable_alternative_screen()?;
+        term::Terminal::hide_cursor()?;
+        self.terminal = Some(terminal);
+        self.fps_rx = render::RenderThread::new(
+            Arc::clone(&self.front_fb),
+            Arc::clone(&self.back_fb),
+            rendering_rate,
+        );
+        Ok(())
     }
 
     /// Get a mutable reference to the buffer's Mutex
