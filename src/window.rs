@@ -16,11 +16,11 @@ pub struct Window {
     terminal: Option<term::Terminal>,
     fps_rx: Receiver<f64>,
     fps: f64,
-    debug: bool,
+    show_fps: bool,
 }
 
 impl Window {
-    pub fn new(debug: bool) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(show_fps: bool) -> Result<Self, Box<dyn std::error::Error>> {
         let (width, height) = term::Terminal::get_size()?;
         let front_fb = Arc::new(Mutex::new(framebuffer::Framebuffer::new(width, height)));
         let back_fb = Arc::new(Mutex::new(framebuffer::Framebuffer::new(width, height)));
@@ -33,7 +33,7 @@ impl Window {
             terminal: None,
             fps_rx,
             fps: 0.0,
-            debug,
+            show_fps,
         })
     }
 
@@ -58,11 +58,15 @@ impl Window {
     }
 
     /// Get a mutable reference to the buffer's Mutex
+    #[deprecated(
+        since = "0.1.11",
+        note = "Use `draw()` method instead for better encapsulation"
+    )]
     pub fn get_canvas(&mut self) -> MutexGuard<'_, framebuffer::Framebuffer> {
         let fps = self.get_fps();
         let mut canvas = self.back_fb.lock().unwrap();
         canvas.clear();
-        if self.debug {
+        if self.show_fps {
             canvas.set_str(
                 2,
                 1,
@@ -76,6 +80,25 @@ impl Window {
         canvas
     }
 
+    /// Draw the contents of the framebuffer
+    pub fn draw(&mut self, f: impl FnOnce(&mut framebuffer::Framebuffer)) {
+        let fps = self.get_fps();
+        let mut lock = self.back_fb.lock().unwrap();
+        lock.clear();
+        if self.show_fps {
+            lock.set_str(
+                2,
+                1,
+                &format!("FPS: {:.2}", fps),
+                term::Attr::NORMAL | term::Attr::BOLD,
+                (128, 255, 128),
+                term::Color::new(),
+                framebuffer::Align::Left,
+            );
+        }
+        f(&mut lock);
+    }
+
     /// Restore the terminal
     pub fn end(&mut self) -> io::Result<()> {
         term::Terminal::show_cursor()?;
@@ -84,7 +107,7 @@ impl Window {
     }
 
     /// Get the current FPS
-    pub fn get_fps(&mut self) -> f64 {
+    fn get_fps(&mut self) -> f64 {
         if let Ok(fps) = self.fps_rx.try_recv() {
             self.fps = fps;
         }

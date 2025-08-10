@@ -24,9 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        // Render the frame
-        {
-            let mut canvas = win.get_canvas();
+        win.draw(|canvas| {
             canvas.set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
             canvas.set_str(
                 x_center,
@@ -37,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Color::new(),
                 Align::Center,
             );
-        }
+        });
 
         thread::sleep(time::Duration::from_millis(100)); // Sleep to prevent high CPU usage
     }

@@ -61,8 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         core.proc_before_draw();
 
-        {
-            let mut canvas = win.get_canvas();
+        win.draw(|canvas| {
             canvas.set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
             canvas.combine(
                 &core.field_frame,
@@ -79,7 +78,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 x_center + core.field_frame.width / 2 + 2,
                 y_center - core.field_frame.height / 2 + 1,
             );
-        }
+        });
 
         core.proc_after_draw();
 
@@ -87,9 +86,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if core.is_gameover {
-        {
-            let mut canvas = win.get_canvas();
-            canvas.set_border(term::Attr::NORMAL, (255, 255, 255), (0, 0, 0));
+        win.draw(|canvas| {
+            canvas.set_border(term::Attr::BOLD, (255, 0, 0), (0, 0, 0));
             canvas.set_str(
                 x_center,
                 y_center,
@@ -99,7 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 (0, 0, 0),
                 Align::Center,
             );
-        }
+        });
         thread::sleep(time::Duration::from_secs(2));
     }
     Ok(())

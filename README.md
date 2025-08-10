@@ -118,4 +118,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Note**: This library is designed for educational purposes and as a foundation for terminal-based applications. For production use, consider established libraries like `crossterm` or `tui-rs` depending on your needs.
+**Note**: This library is designed for educational purposes and as a foundation for terminal-based applications. For production use, consider established libraries like `crossterm` or `ratatui-rs` depending on your needs.

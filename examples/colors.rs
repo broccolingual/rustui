@@ -22,8 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         // Render the frame
-        {
-            let mut canvas = win.get_canvas();
+        win.draw(|canvas| {
             for r in 0..8 {
                 for g in 0..8 {
                     for b in 0..8 {
@@ -49,7 +48,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Color::new(),
                 Align::Left,
             );
-        }
+        });
 
         thread::sleep(time::Duration::from_millis(100)); // Sleep to prevent high CPU usage
     }
