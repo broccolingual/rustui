@@ -1,6 +1,6 @@
 [package]
 name = "rustui"
-version = "0.1.2"
+version = "0.1.20"
 authors = ["Broccolingual"]
 description = "TUI library for Linux and Unix-like systems"
 repository = "https://github.com/broccolingual/rustui"
