@@ -20,13 +20,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Draw the frame
         win.draw(|canvas| {
-            for r in 0..8 {
-                for g in 0..8 {
-                    for b in 0..8 {
-                        let color = (r * 32 as i32, g * 32 as i32, b * 32 as i32);
+            for r in 0..4 {
+                for g in 0..4 {
+                    for b in 0..4 {
+                        let color = (r * 64 as i32, g * 64 as i32, b * 64 as i32);
                         canvas.set_str(
-                            (r * 2 + b * 18) as usize,
-                            g as usize,
+                            (r * 2 + g * 10) as usize,
+                            b as usize,
                             "  ",
                             Attr::NORMAL,
                             Color::new(),
@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             canvas.set_str(
                 0,
-                10,
+                6,
                 "Press 'q' to quit",
                 Attr::BOLD,
                 Color::new(),

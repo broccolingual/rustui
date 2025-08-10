@@ -1,6 +1,8 @@
 # rustui
 
-A modern, safe, and ergonomic terminal UI library for Rust, designed with Rust's ownership model and safety guarantees in mind.
+![](docs/welcome.png)
+
+The simplest terminal UI library designed for Rust. Developed with Rust's ownership model and safety guarantees in mind.
 
 ## Features
 
@@ -66,11 +68,15 @@ This repository includes a demo application that showcases the library's capabil
 cargo run --example hello_world
 ```
 
+![](docs/ex_hello_world.png)
+
 #### Colors
 
 ```bash
 cargo run --example colors
 ```
+
+![](docs/ex_colors.png)
 
 #### Inputs
 
@@ -78,11 +84,15 @@ cargo run --example colors
 cargo run --example inputs
 ```
 
+![](docs/ex_inputs.png)
+
 #### Tetris
 
 ```bash
 cargo run --example tetris
 ```
+
+![](docs/ex_tetris.png)
 
 ## Platform Support
 
