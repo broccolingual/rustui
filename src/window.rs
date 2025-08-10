@@ -4,16 +4,14 @@ use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time;
 
-use crate::framebuffer;
-use crate::render;
-use crate::term::{self, ColorExt};
+use crate::*;
 
 pub struct Window {
     pub width: usize,
     pub height: usize,
-    front_fb: Arc<Mutex<framebuffer::Framebuffer>>,
-    back_fb: Arc<Mutex<framebuffer::Framebuffer>>,
-    terminal: Option<term::Terminal>,
+    front_fb: Arc<Mutex<Framebuffer>>,
+    back_fb: Arc<Mutex<Framebuffer>>,
+    terminal: Option<Terminal>,
     fps_rx: Receiver<f64>,
     fps: f64,
     show_fps: bool,
@@ -21,9 +19,9 @@ pub struct Window {
 
 impl Window {
     pub fn new(show_fps: bool) -> Result<Self, Box<dyn std::error::Error>> {
-        let (width, height) = term::Terminal::get_size()?;
-        let front_fb = Arc::new(Mutex::new(framebuffer::Framebuffer::new(width, height)));
-        let back_fb = Arc::new(Mutex::new(framebuffer::Framebuffer::new(width, height)));
+        let (width, height) = Terminal::get_size()?;
+        let front_fb = Arc::new(Mutex::new(Framebuffer::new(width, height)));
+        let back_fb = Arc::new(Mutex::new(Framebuffer::new(width, height)));
         let (_, fps_rx) = std::sync::mpsc::channel();
         Ok(Self {
             width,
@@ -41,13 +39,13 @@ impl Window {
     #[deprecated(since = "0.1.11", note = "Use `initialize()` method instead")]
     pub fn init(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let fd = io::stdin().as_raw_fd();
-        let terminal = term::Terminal::enable_raw_mode(fd)?;
+        let terminal = Terminal::enable_raw_mode(fd)?;
         terminal.set_nonblocking()?;
 
-        term::Terminal::enable_alternative_screen()?;
-        term::Terminal::hide_cursor()?;
-        term::Terminal::enable_mouse_reporting()?;
-        term::Terminal::enable_sgr_coords()?;
+        Terminal::exec(Cmd::EnableAlternativeScreen)?;
+        Terminal::exec(Cmd::HideCursor)?;
+        Terminal::exec(Cmd::EnableMouseReporting)?;
+        Terminal::exec(Cmd::EnableSgrCoords)?;
 
         self.terminal = Some(terminal);
         Ok(())
@@ -56,8 +54,7 @@ impl Window {
     /// Start the rendering thread
     #[deprecated(since = "0.1.11", note = "Use `initialize()` method instead")]
     pub fn start(&mut self, rate: time::Duration) {
-        let fps_rx =
-            render::RenderThread::new(Arc::clone(&self.front_fb), Arc::clone(&self.back_fb), rate);
+        let fps_rx = RenderThread::new(Arc::clone(&self.front_fb), Arc::clone(&self.back_fb), rate);
         self.fps_rx = fps_rx;
     }
 
@@ -67,14 +64,14 @@ impl Window {
         rendering_rate: time::Duration,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let fd = io::stdin().as_raw_fd();
-        let terminal = term::Terminal::enable_raw_mode(fd)?;
+        let terminal = Terminal::enable_raw_mode(fd)?;
         terminal.set_nonblocking()?;
-        term::Terminal::enable_alternative_screen()?;
-        term::Terminal::hide_cursor()?;
-        term::Terminal::enable_mouse_reporting()?;
-        term::Terminal::enable_sgr_coords()?;
+        Terminal::exec(Cmd::EnableAlternativeScreen)?;
+        Terminal::exec(Cmd::HideCursor)?;
+        Terminal::exec(Cmd::EnableMouseReporting)?;
+        Terminal::exec(Cmd::EnableSgrCoords)?;
         self.terminal = Some(terminal);
-        self.fps_rx = render::RenderThread::new(
+        self.fps_rx = RenderThread::new(
             Arc::clone(&self.front_fb),
             Arc::clone(&self.back_fb),
             rendering_rate,
@@ -87,7 +84,7 @@ impl Window {
         since = "0.1.11",
         note = "Use `draw()` method instead for better encapsulation"
     )]
-    pub fn get_canvas(&mut self) -> MutexGuard<'_, framebuffer::Framebuffer> {
+    pub fn get_canvas(&mut self) -> MutexGuard<'_, Framebuffer> {
         let fps = self.get_fps();
         let mut canvas = self.back_fb.lock().unwrap();
         canvas.clear();
@@ -96,17 +93,17 @@ impl Window {
                 2,
                 1,
                 &format!("FPS: {fps:.2}"),
-                term::Attr::NORMAL | term::Attr::BOLD,
+                Attr::NORMAL | Attr::BOLD,
                 (128, 255, 128),
-                term::Color::new(),
-                framebuffer::Align::Left,
+                Color::new(),
+                Align::Left,
             );
         }
         canvas
     }
 
     /// Draw the contents of the framebuffer
-    pub fn draw(&mut self, f: impl FnOnce(&mut framebuffer::Framebuffer)) {
+    pub fn draw(&mut self, f: impl FnOnce(&mut Framebuffer)) {
         let fps = self.get_fps();
         let mut lock = self.back_fb.lock().unwrap();
         lock.clear();
@@ -115,10 +112,10 @@ impl Window {
                 2,
                 1,
                 &format!("FPS: {fps:.2}"),
-                term::Attr::NORMAL | term::Attr::BOLD,
+                Attr::NORMAL | Attr::BOLD,
                 (128, 255, 128),
-                term::Color::new(),
-                framebuffer::Align::Left,
+                Color::new(),
+                Align::Left,
             );
         }
         f(&mut lock);
@@ -126,10 +123,10 @@ impl Window {
 
     /// Restore the terminal
     pub fn end(&mut self) -> io::Result<()> {
-        term::Terminal::disable_sgr_coords()?;
-        term::Terminal::disable_mouse_reporting()?;
-        term::Terminal::show_cursor()?;
-        term::Terminal::disable_alternative_screen()?;
+        Terminal::exec(Cmd::DisableSgrCoords)?;
+        Terminal::exec(Cmd::DisableMouseReporting)?;
+        Terminal::exec(Cmd::ShowCursor)?;
+        Terminal::exec(Cmd::DisableAlternativeScreen)?;
         Ok(())
     }
 

@@ -37,6 +37,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     MouseEvent::Release { button, x, y } => {
                         format!("Mouse Release: {:?} at ({},{})", button, x, y)
                     }
+                    MouseEvent::Move { x, y } => {
+                        format!("Mouse Move: at ({},{})", x, y)
+                    }
                 },
                 None => "No input yet".to_string(),
             };

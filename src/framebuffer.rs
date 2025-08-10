@@ -1,22 +1,22 @@
 use std::io::{self, Write};
 
-use crate::term::{self, ColorExt};
+use crate::*;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Cell {
     pub ch: char,
-    pub attrs: term::Attr,
-    pub fg: term::Color,
-    pub bg: term::Color,
+    pub attrs: Attr,
+    pub fg: Color,
+    pub bg: Color,
 }
 
 impl Cell {
     pub fn new() -> Self {
         Self {
             ch: ' ',
-            attrs: term::Attr::NORMAL,
-            fg: term::Color::new(),
-            bg: term::Color::new(),
+            attrs: Attr::NORMAL,
+            fg: Color::new(),
+            bg: Color::new(),
         }
     }
 }
@@ -63,15 +63,7 @@ impl Framebuffer {
     }
 
     /// Write a character and its attributes to the buffer.
-    pub fn set_char(
-        &mut self,
-        x: usize,
-        y: usize,
-        ch: char,
-        attrs: term::Attr,
-        fg: term::Color,
-        bg: term::Color,
-    ) {
+    pub fn set_char(&mut self, x: usize, y: usize, ch: char, attrs: Attr, fg: Color, bg: Color) {
         if self.check_range(x, y) {
             let idx = y * self.width + x;
             self.buffer[idx].ch = ch;
@@ -87,9 +79,9 @@ impl Framebuffer {
         x: usize,
         y: usize,
         str: &str,
-        attrs: term::Attr,
-        fg: term::Color,
-        bg: term::Color,
+        attrs: Attr,
+        fg: Color,
+        bg: Color,
         align: Align,
     ) {
         let start_x = match align {
@@ -103,7 +95,7 @@ impl Framebuffer {
     }
 
     /// Draw the border around the buffer.
-    pub fn set_border(&mut self, attrs: term::Attr, fg: term::Color, bg: term::Color) {
+    pub fn set_border(&mut self, attrs: Attr, fg: Color, bg: Color) {
         let w = self.width;
         let h = self.height;
 
@@ -132,9 +124,9 @@ impl Framebuffer {
         x: usize,
         y_start: usize,
         y_end: usize,
-        attrs: term::Attr,
-        fg: term::Color,
-        bg: term::Color,
+        attrs: Attr,
+        fg: Color,
+        bg: Color,
     ) {
         for y in y_start..=y_end {
             self.set_char(x, y, '│', attrs, fg, bg);
@@ -147,9 +139,9 @@ impl Framebuffer {
         y: usize,
         x_start: usize,
         x_end: usize,
-        attrs: term::Attr,
-        fg: term::Color,
-        bg: term::Color,
+        attrs: Attr,
+        fg: Color,
+        bg: Color,
     ) {
         for x in x_start..=x_end {
             self.set_char(x, y, '─', attrs, fg, bg);
@@ -178,9 +170,9 @@ impl Framebuffer {
         }
 
         let mut stdout_lock = io::stdout().lock(); // Lock standard output
-        let mut prev_attrs = term::Attr::NORMAL;
-        let mut prev_fg: term::Color = term::Color::new();
-        let mut prev_bg: term::Color = term::Color::new();
+        let mut prev_attrs = Attr::NORMAL;
+        let mut prev_fg: Color = Color::new();
+        let mut prev_bg: Color = Color::new();
 
         stdout_lock.write_all("\x1B[0m".as_bytes())?; // Reset all attributes
         stdout_lock.flush()?;

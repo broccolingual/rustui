@@ -57,6 +57,7 @@ pub enum MouseButton {
 pub enum MouseEvent {
     Press { button: MouseButton, x: u16, y: u16 },
     Release { button: MouseButton, x: u16, y: u16 },
+    Move { x: u16, y: u16 },
 }
 
 /// Input event
@@ -240,6 +241,7 @@ impl InputListener {
         input_rx
     }
 
+    /// Stop the input listener thread
     pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(tx) = self.stop_signal.take() {
             tx.send(())?; // Send stop signal
