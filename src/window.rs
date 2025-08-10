@@ -44,10 +44,10 @@ impl Window {
         let terminal = term::Terminal::enable_raw_mode(fd)?;
         terminal.set_nonblocking()?;
 
-        term::Terminal::enable_alternative_screen()?;
-        term::Terminal::hide_cursor()?;
-        term::Terminal::enable_mouse_reporting()?;
-        term::Terminal::enable_sgr_coords()?;
+        term::Terminal::exec(term::Cmd::EnableAlternativeScreen)?;
+        term::Terminal::exec(term::Cmd::HideCursor)?;
+        term::Terminal::exec(term::Cmd::EnableMouseReporting)?;
+        term::Terminal::exec(term::Cmd::EnableSgrCoords)?;
 
         self.terminal = Some(terminal);
         Ok(())
@@ -69,10 +69,10 @@ impl Window {
         let fd = io::stdin().as_raw_fd();
         let terminal = term::Terminal::enable_raw_mode(fd)?;
         terminal.set_nonblocking()?;
-        term::Terminal::enable_alternative_screen()?;
-        term::Terminal::hide_cursor()?;
-        term::Terminal::enable_mouse_reporting()?;
-        term::Terminal::enable_sgr_coords()?;
+        term::Terminal::exec(term::Cmd::EnableAlternativeScreen)?;
+        term::Terminal::exec(term::Cmd::HideCursor)?;
+        term::Terminal::exec(term::Cmd::EnableMouseReporting)?;
+        term::Terminal::exec(term::Cmd::EnableSgrCoords)?;
         self.terminal = Some(terminal);
         self.fps_rx = render::RenderThread::new(
             Arc::clone(&self.front_fb),
@@ -126,10 +126,10 @@ impl Window {
 
     /// Restore the terminal
     pub fn end(&mut self) -> io::Result<()> {
-        term::Terminal::disable_sgr_coords()?;
-        term::Terminal::disable_mouse_reporting()?;
-        term::Terminal::show_cursor()?;
-        term::Terminal::disable_alternative_screen()?;
+        term::Terminal::exec(term::Cmd::DisableSgrCoords)?;
+        term::Terminal::exec(term::Cmd::DisableMouseReporting)?;
+        term::Terminal::exec(term::Cmd::ShowCursor)?;
+        term::Terminal::exec(term::Cmd::DisableAlternativeScreen)?;
         Ok(())
     }
 
