@@ -95,7 +95,7 @@ impl Window {
             canvas.set_str(
                 2,
                 1,
-                &format!("FPS: {:.2}", fps),
+                &format!("FPS: {fps:.2}"),
                 term::Attr::NORMAL | term::Attr::BOLD,
                 (128, 255, 128),
                 term::Color::new(),
@@ -114,7 +114,7 @@ impl Window {
             lock.set_str(
                 2,
                 1,
-                &format!("FPS: {:.2}", fps),
+                &format!("FPS: {fps:.2}"),
                 term::Attr::NORMAL | term::Attr::BOLD,
                 (128, 255, 128),
                 term::Color::new(),
@@ -145,7 +145,7 @@ impl Window {
 impl Drop for Window {
     fn drop(&mut self) {
         if let Err(e) = self.end() {
-            eprintln!("Error restoring terminal state: {}", e);
+            eprintln!("Error restoring terminal state: {e}");
         }
     }
 }

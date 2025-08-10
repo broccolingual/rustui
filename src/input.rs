@@ -256,7 +256,7 @@ impl InputListener {
 impl Drop for InputListener {
     fn drop(&mut self) {
         if let Err(e) = self.stop() {
-            eprintln!("Error stopping input listener: {}", e);
+            eprintln!("Error stopping input listener: {e}");
         }
     }
 }

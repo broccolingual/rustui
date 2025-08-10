@@ -57,7 +57,7 @@ impl Attr {
         .collect::<Vec<_>>()
         .join(";");
 
-        csi!(&format!("{}m", ansi_codes))
+        csi!(&format!("{ansi_codes}m"))
     }
 }
 
@@ -128,7 +128,7 @@ impl Terminal {
 
     /// Move the cursor to the specified position
     pub fn move_cursor(x: usize, y: usize) -> io::Result<()> {
-        print!("{}", csi!(&format!("{};{}H", y, x)));
+        print!("{}", csi!(&format!("{y};{x}H")));
         io::stdout().flush()
     }
 

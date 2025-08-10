@@ -1,7 +1,7 @@
 use std::sync::TryLockError;
 use std::sync::{
-    Arc, Mutex,
     mpsc::{self, Receiver, Sender},
+    Arc, Mutex,
 };
 use std::thread;
 use std::time;

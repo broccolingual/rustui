@@ -105,7 +105,7 @@ Windows support may be added in future versions.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
+We sincerely appreciate your contribution to this crate. Please be sure to read the [guidelines](https://github.com/broccolingual/rustui/blob/main/CONTRIBUTING.md) before contributing.
 
 ### Development
 
