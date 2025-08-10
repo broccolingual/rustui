@@ -1,7 +1,7 @@
 use rustui::*;
 use std::{thread, time};
 
-const RENDERING_RATE: time::Duration = time::Duration::from_millis(16);
+const RENDERING_RATE: time::Duration = time::Duration::from_millis(16); // ms
 const INPUT_CAPTURING_RATE: time::Duration = time::Duration::from_millis(10); // ms
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -23,15 +23,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Draw the frame
         win.draw(|canvas| {
-            canvas.set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
+            canvas.set_border(term::Attr::NORMAL, (255, 255, 255), Color::new()); // Set border
             canvas.set_str(
                 x_center,
                 y_center,
                 "Hello, world! (Press 'q' to quit)",
-                term::Attr::NORMAL,
-                (128, 255, 128),
-                Color::new(),
-                Align::Center,
+                term::Attr::NORMAL, // Set text decoration
+                (128, 255, 128),    // Set text color
+                (64, 64, 64),       // Set background color
+                Align::Center,      // Set text alignment to center
             );
         });
 
