@@ -15,7 +15,7 @@ const MOVING_AFTER_DROP_COUNTER_MAX: usize = 30; // 30 frames after drop
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut win = Window::new(true)?;
     win.initialize(RENDERING_RATE)?;
-    let key_rx = KeyListener::new(INPUT_CAPTURING_RATE);
+    let input_rx = InputListener::new(INPUT_CAPTURING_RATE);
 
     if win.width < 60 || win.height < 30 {
         return Err(Box::from(
@@ -33,25 +33,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             break;
         }
 
-        if let Ok(key) = key_rx.try_recv() {
-            match key {
-                Key::Char('q') => break,
-                Key::Char('r') => {
+        if let Ok(event) = input_rx.try_recv() {
+            match event {
+                InputEvent::Key(Key::Char('q')) => break,
+                InputEvent::Key(Key::Char('r')) => {
                     core.hold();
                 }
-                Key::Char(' ') => {
+                InputEvent::Key(Key::Char(' ')) => {
                     core.quick_drop();
                 }
-                Key::ArrowUp => {
+                InputEvent::Key(Key::ArrowUp) => {
                     core.rotate();
                 }
-                Key::ArrowDown => {
+                InputEvent::Key(Key::ArrowDown) => {
                     core.move_down();
                 }
-                Key::ArrowRight => {
+                InputEvent::Key(Key::ArrowRight) => {
                     core.move_right();
                 }
-                Key::ArrowLeft => {
+                InputEvent::Key(Key::ArrowLeft) => {
                     core.move_left();
                 }
                 _ => (),
@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         core.proc_before_draw();
 
         win.draw(|canvas| {
-            canvas.set_border(term::Attr::NORMAL, (255, 255, 255), Color::new());
+            canvas.set_border(Attr::NORMAL, (255, 255, 255), Color::new());
             canvas.combine(
                 &core.field_frame,
                 x_center - core.field_frame.width / 2,

@@ -1,5 +1,5 @@
 use rand::Rng;
-use rustui::term;
+use rustui::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Pos {
@@ -53,7 +53,7 @@ impl BlockType {
         }
     }
 
-    pub fn get_color(&self) -> term::Color {
+    pub fn get_color(&self) -> Color {
         match self {
             BlockType::I => (0, 255, 255),
             BlockType::O => (255, 255, 0),
@@ -138,7 +138,7 @@ impl Block {
         self.center_pos.y += dy;
     }
 
-    pub fn get_color(&self) -> term::Color {
+    pub fn get_color(&self) -> Color {
         self.block_type.get_color()
     }
 }

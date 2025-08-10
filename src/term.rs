@@ -7,63 +7,57 @@ use std::{
     os::fd::AsRawFd,
 };
 
+/// Create a CSI (Control Sequence Introducer) escape sequence
+macro_rules! csi {
+    ($x:expr) => {
+        String::from("\x1B[") + $x
+    };
+}
+
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct Attr: u16 {
-        const NORMAL = 1;
-        const BOLD = 2;
-        const THIN = 4;
-        const ITALIC = 8;
-        const UNDERLINE = 16;
-        const BLINK = 32;
-        const FASTBLINK = 64;
-        const INVERT = 128;
-        const HIDDEN = 256;
-        const REMOVE = 512;
+        const NORMAL = 1; // 0
+        const BOLD = 2; // 1
+        const THIN = 4; // 2
+        const ITALIC = 8; // 3
+        const UNDERLINE = 16; // 4
+        const BLINK = 32; // 5
+        const FASTBLINK = 64; // 6
+        const INVERT = 128; // 7
+        const HIDDEN = 256; // 8
+        const REMOVE = 512; // 9
+        const PRIMARY = 1024; // 10
     }
 }
 
 impl Attr {
     /// Convert attributes to ANSI escape codes
     pub fn to_ansi(&self) -> String {
-        let mut ansi = String::from("\x1B[");
         if self.is_empty() {
-            ansi.push_str("0m");
-            return ansi;
+            return csi!("0m");
         }
-        if self.contains(Attr::NORMAL) {
-            ansi.push_str("0;");
-        }
-        if self.contains(Attr::BOLD) {
-            ansi.push_str("1;");
-        }
-        if self.contains(Attr::THIN) {
-            ansi.push_str("2;");
-        }
-        if self.contains(Attr::ITALIC) {
-            ansi.push_str("3;");
-        }
-        if self.contains(Attr::UNDERLINE) {
-            ansi.push_str("4;");
-        }
-        if self.contains(Attr::BLINK) {
-            ansi.push_str("5;");
-        }
-        if self.contains(Attr::FASTBLINK) {
-            ansi.push_str("6;");
-        }
-        if self.contains(Attr::INVERT) {
-            ansi.push_str("7;");
-        }
-        if self.contains(Attr::HIDDEN) {
-            ansi.push_str("8;");
-        }
-        if self.contains(Attr::REMOVE) {
-            ansi.push_str("9;");
-        }
-        ansi.pop(); // Remove the last semicolon
-        ansi.push_str("m");
-        ansi
+
+        let ansi_codes = [
+            (Attr::NORMAL, "0"),
+            (Attr::BOLD, "1"),
+            (Attr::THIN, "2"),
+            (Attr::ITALIC, "3"),
+            (Attr::UNDERLINE, "4"),
+            (Attr::BLINK, "5"),
+            (Attr::FASTBLINK, "6"),
+            (Attr::INVERT, "7"),
+            (Attr::HIDDEN, "8"),
+            (Attr::REMOVE, "9"),
+            (Attr::PRIMARY, "10"),
+        ]
+        .iter()
+        .filter(|(attr, _)| self.contains(*attr))
+        .map(|(_, code)| *code)
+        .collect::<Vec<_>>()
+        .join(";");
+
+        csi!(&format!("{}m", ansi_codes))
     }
 }
 
@@ -122,37 +116,67 @@ impl Terminal {
 
     /// Show the cursor
     pub fn show_cursor() -> io::Result<()> {
-        print!("\x1B[?25h");
+        print!("{}", csi!("?25h"));
         io::stdout().flush()
     }
 
     /// Hide the cursor
     pub fn hide_cursor() -> io::Result<()> {
-        print!("\x1B[?25l");
+        print!("{}", csi!("?25l"));
+        io::stdout().flush()
+    }
+
+    /// Move the cursor to the specified position
+    pub fn move_cursor(x: usize, y: usize) -> io::Result<()> {
+        print!("{}", csi!(&format!("{};{}H", y, x)));
         io::stdout().flush()
     }
 
     /// Clear the screen
     pub fn clear() -> io::Result<()> {
-        print!("\x1B[2J");
+        print!("{}", csi!("2J"));
         io::stdout().flush()
     }
 
     /// Move the cursor to the home position
-    pub fn move_to_home() -> io::Result<()> {
-        print!("\x1B[H");
+    pub fn move_cursor_to_home() -> io::Result<()> {
+        print!("{}", csi!("H"));
         io::stdout().flush()
     }
 
     /// Enable alternative screen
     pub fn enable_alternative_screen() -> io::Result<()> {
-        print!("\x1B[?1049h");
+        print!("{}", csi!("?1049h"));
         io::stdout().flush()
     }
 
     /// Disable alternative screen
     pub fn disable_alternative_screen() -> io::Result<()> {
-        print!("\x1B[?1049l");
+        print!("{}", csi!("?1049l"));
+        io::stdout().flush()
+    }
+
+    /// Enable mouse reporting
+    pub fn enable_mouse_reporting() -> io::Result<()> {
+        print!("{}", csi!("?1000h"));
+        io::stdout().flush()
+    }
+
+    /// Disable mouse reporting
+    pub fn disable_mouse_reporting() -> io::Result<()> {
+        print!("{}", csi!("?1000l"));
+        io::stdout().flush()
+    }
+
+    /// Enable SGR (Select Graphic Rendition) coordinates
+    pub fn enable_sgr_coords() -> io::Result<()> {
+        print!("{}", csi!("?1006h"));
+        io::stdout().flush()
+    }
+
+    /// Disable SGR (Select Graphic Rendition) coordinates
+    pub fn disable_sgr_coords() -> io::Result<()> {
+        print!("{}", csi!("?1006l"));
         io::stdout().flush()
     }
 

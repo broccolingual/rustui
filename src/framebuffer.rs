@@ -94,20 +94,8 @@ impl Framebuffer {
     ) {
         let start_x = match align {
             Align::Left => x,
-            Align::Center => {
-                if str.len() > x {
-                    0
-                } else {
-                    x - str.len() / 2
-                }
-            }
-            Align::Right => {
-                if str.len() > x {
-                    0
-                } else {
-                    x - str.len()
-                }
-            }
+            Align::Center => x.saturating_sub(str.len() / 2),
+            Align::Right => x.saturating_sub(str.len()),
         };
         for (i, ch) in str.chars().enumerate() {
             self.set_char(start_x + i, y, ch, attrs, fg, bg);
