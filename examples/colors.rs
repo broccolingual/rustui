@@ -6,11 +6,8 @@ const INPUT_CAPTURING_RATE: time::Duration = time::Duration::from_millis(10); //
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut win = Window::new(false)?;
-    win.init()?; // Initialize the window (enable raw mode)
-    win.start(RENDERING_RATE); // Start the rendering thread
-
-    // Create a key listener
-    let key_rx = KeyListener::new(INPUT_CAPTURING_RATE);
+    win.initialize(RENDERING_RATE)?; // Initialize the window and start the rendering thread
+    let key_rx = KeyListener::new(INPUT_CAPTURING_RATE); // Create a key listener
 
     loop {
         // Check for key presses
@@ -21,9 +18,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
 
-        // Render the frame
-        {
-            let mut canvas = win.get_canvas();
+        // Draw the frame
+        win.draw(|canvas| {
             for r in 0..8 {
                 for g in 0..8 {
                     for b in 0..8 {
@@ -49,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Color::new(),
                 Align::Left,
             );
-        }
+        });
 
         thread::sleep(time::Duration::from_millis(100)); // Sleep to prevent high CPU usage
     }
