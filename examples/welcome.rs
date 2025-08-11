@@ -9,24 +9,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     win.initialize(RENDERING_RATE)?; // Initialize the window and start the rendering thread
     let input_rx = InputListener::new(INPUT_CAPTURING_RATE); // Create an input listener
 
-    let x_center = win.width / 2;
-    let y_center = win.height / 2;
-
     loop {
         // Check for key presses
-        if let Ok(event) = input_rx.try_recv() {
-            match event {
-                InputEvent::Key(Key::Char('q')) => break,
-                _ => (),
-            }
+        if let Ok(InputEvent::Key(Key::Char('q'))) = input_rx.try_recv() {
+            break; // Exit the loop if 'q' is pressed
         }
 
         // Draw the frame
         win.draw(|canvas| {
             canvas.set_border(Attr::NORMAL, (255, 255, 255), Color::new()); // Set border
             canvas.set_str(
-                x_center,
-                y_center - 2,
+                canvas.width / 2, // Center the text horizontally
+                canvas.height / 2 - 2,
                 r"  ____  _   _ ____ _____ _   _ ___",
                 Attr::BOLD,
                 (255, 128, 128),
@@ -34,8 +28,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Align::Center,
             );
             canvas.set_str(
-                x_center,
-                y_center - 1,
+                canvas.width / 2,
+                canvas.height / 2 - 1,
                 r" |  _ \| | | / ___|_   _| | | |_ _|",
                 Attr::BOLD,
                 (255, 128, 128),
@@ -43,8 +37,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Align::Center,
             );
             canvas.set_str(
-                x_center,
-                y_center,
+                canvas.width / 2,
+                canvas.height / 2,
                 r"| |_) | | | \___ \ | | | | | || |",
                 Attr::BOLD,
                 (255, 128, 128),
@@ -52,8 +46,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Align::Center,
             );
             canvas.set_str(
-                x_center,
-                y_center + 1,
+                canvas.width / 2,
+                canvas.height / 2 + 1,
                 r"|  _ <| |_| |___) || | | |_| || |",
                 Attr::BOLD,
                 (255, 128, 128),
@@ -61,8 +55,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Align::Center,
             );
             canvas.set_str(
-                x_center,
-                y_center + 2,
+                canvas.width / 2,
+                canvas.height / 2 + 2,
                 r" |_| \_\\___/|____/ |_|  \___/|___|",
                 Attr::BOLD,
                 (255, 128, 128),
@@ -70,8 +64,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Align::Center,
             );
             canvas.set_str(
-                x_center + 1,
-                y_center + 3,
+                canvas.width / 2,
+                canvas.height / 2 + 3,
                 "The simplest terminal UI library",
                 Attr::NORMAL,
                 (255, 255, 255),

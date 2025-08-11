@@ -6,14 +6,24 @@ use std::sync::{
 use std::thread;
 use std::time;
 
-use crate::*;
+use crate::Framebuffer;
 
+/// Represents a render thread for rendering frames.
 pub struct RenderThread {
+    /// The thread handle for the rendering thread.
     pub handle: Option<thread::JoinHandle<()>>,
+    /// The stop signal sender for the rendering thread.
     pub stop_signal: Option<Sender<()>>,
 }
 
 impl RenderThread {
+    /// Create a new render thread that renders frames at a specified rate.
+    ///
+    /// * `front_fb` - The front framebuffer to render to.
+    /// * `back_fb` - The back framebuffer to render from.
+    /// * `rendering_rate` - The rate at which to render frames.
+    ///
+    /// Returns a receiver for the frame rate updates.
     pub fn new(
         front_fb: Arc<Mutex<Framebuffer>>,
         back_fb: Arc<Mutex<Framebuffer>>,
@@ -75,6 +85,8 @@ impl RenderThread {
     }
 
     /// Stop the render thread
+    ///
+    /// Returns `Ok(())` if the thread was stopped successfully, or an error if it failed.
     pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(tx) = self.stop_signal.take() {
             tx.send(())?; // Send stop signal

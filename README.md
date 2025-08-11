@@ -26,24 +26,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     win.initialize(RENDERING_RATE)?; // Initialize the window and start the rendering thread
     let input_rx = InputListener::new(INPUT_CAPTURING_RATE); // Create an input listener
 
-    let x_center = win.width / 2;
-    let y_center = win.height / 2;
-
     loop {
         // Check for key presses
-        if let Ok(event) = input_rx.try_recv() {
-            match event {
-                InputEvent::Key(Key::Char('q')) => break,
-                _ => (),
-            }
+        if let Ok(InputEvent::Key(Key::Char('q'))) = input_rx.try_recv() {
+            break; // Exit the loop if 'q' is pressed
         }
 
         // Draw the frame
         win.draw(|canvas| {
             canvas.set_border(Attr::NORMAL, (255, 255, 255), Color::new()); // Set border
             canvas.set_str(
-                x_center,
-                y_center,
+                canvas.width / 2, // Center the text horizontally
+                canvas.height / 2,
                 "Hello, world! (Press 'q' to quit)",
                 Attr::NORMAL,    // Set text decoration
                 (128, 255, 128), // Set text color

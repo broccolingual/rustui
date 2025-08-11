@@ -16,6 +16,7 @@ macro_rules! csi {
 }
 
 bitflags! {
+    /// Represents terminal attributes using bitflags.
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct Attr: u16 {
         const NORMAL = 1; // 0
@@ -34,6 +35,8 @@ bitflags! {
 
 impl Attr {
     /// Convert attributes to ANSI escape codes
+    ///
+    /// Returns a string containing the ANSI escape codes for the active attributes.
     pub fn to_ansi(&self) -> String {
         if self.is_empty() {
             return csi!("0m");
@@ -62,24 +65,32 @@ impl Attr {
     }
 }
 
+/// Represents an RGB color.
 pub type Color = (i32, i32, i32);
 
+/// Extension trait for RGB colors.
 pub trait ColorExt {
     fn new() -> Self;
     fn is_valid(&self) -> bool;
 }
 
 impl ColorExt for Color {
+    /// Creates an invalid/default color.
+    ///
+    /// Returns `(-1, -1, -1)` representing no color.
     fn new() -> Self {
         (-1, -1, -1)
     }
 
     /// Check if the color is valid
+    ///
+    /// Returns `true` if the color is valid (i.e., all components are between 0 and 255).
     fn is_valid(&self) -> bool {
         self.0 >= 0 && self.0 <= 255 && self.1 >= 0 && self.1 <= 255 && self.2 >= 0 && self.2 <= 255
     }
 }
 
+/// Represents terminal commands.
 pub enum Cmd {
     ShowCursor,
     HideCursor,
@@ -94,13 +105,20 @@ pub enum Cmd {
     DisableSgrCoords,
 }
 
+/// Represents a terminal.
 pub struct Terminal {
+    /// The file descriptor for the terminal.
     fd: i32,
+    /// The original terminal settings.
     original: Termios,
 }
 
 impl Terminal {
     /// Enable raw mode
+    ///
+    /// * `fd` - The file descriptor for the terminal.
+    ///
+    /// Returns a `Terminal` instance with raw mode enabled.
     pub fn enable_raw_mode(fd: i32) -> nix::Result<Self> {
         let borrowed_fd = unsafe { BorrowedFd::borrow_raw(fd) };
         let original = termios::tcgetattr(borrowed_fd)?;
@@ -114,6 +132,8 @@ impl Terminal {
     }
 
     /// Set the terminal to non-blocking mode
+    ///
+    /// Returns `Ok(())` if successful, or an error if it fails.
     pub fn set_nonblocking(&self) -> nix::Result<()> {
         unsafe {
             let flags = libc::fcntl(self.fd, libc::F_GETFL);
@@ -129,6 +149,10 @@ impl Terminal {
     }
 
     /// Execute a terminal command
+    ///
+    /// * `cmd` - The command to execute.
+    ///
+    /// Returns `Ok(())` if successful, or an error if it fails.
     pub fn exec(cmd: Cmd) -> io::Result<()> {
         let ansi = match cmd {
             Cmd::ShowCursor => csi!("?25h"),
@@ -248,5 +272,48 @@ impl Drop for Terminal {
     fn drop(&mut self) {
         let borrowed_fd = unsafe { BorrowedFd::borrow_raw(self.fd) };
         let _ = termios::tcsetattr(borrowed_fd, SetArg::TCSANOW, &self.original);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_attr_to_ansi() {
+        let attr = Attr::BOLD | Attr::UNDERLINE;
+        assert_eq!(attr.to_ansi(), "\x1B[1;4m");
+
+        let attr = Attr::empty();
+        assert_eq!(attr.to_ansi(), "\x1B[0m");
+
+        let attr = Attr::all();
+        assert_eq!(attr.to_ansi(), "\x1B[0;1;2;3;4;5;6;7;8;9;10m");
+    }
+
+    #[test]
+    fn test_csi_macro() {
+        assert_eq!(csi!("?25h"), "\x1B[?25h");
+    }
+
+    #[test]
+    fn test_color_init() {
+        let color = Color::new();
+        assert_eq!(color, (-1, -1, -1));
+    }
+
+    #[test]
+    fn test_color_is_valid() {
+        let color = Color::new();
+        assert!(!color.is_valid());
+
+        let color = (255, 255, 255);
+        assert!(color.is_valid());
+
+        let color = (-1, 128, 128);
+        assert!(!color.is_valid());
+
+        let color = (256, 128, 128);
+        assert!(!color.is_valid());
     }
 }

@@ -8,10 +8,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut win = Window::new(false)?;
     win.initialize(RENDERING_RATE)?; // Initialize the window and start the rendering thread
     let input_rx = InputListener::new(INPUT_CAPTURING_RATE); // Create an input listener
-
-    let x_center = win.width / 2;
-    let y_center = win.height / 2;
-
     let mut key_last_pressed = None;
 
     loop {
@@ -47,8 +43,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let full_text = format!("{} (Press 'q' to quit)", display_text);
 
             canvas.set_str(
-                x_center,
-                y_center,
+                canvas.width / 2,
+                canvas.height / 2,
                 &full_text,
                 Attr::NORMAL,
                 (255, 255, 255),
