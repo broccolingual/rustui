@@ -69,6 +69,8 @@ pub enum InputEvent {
 
 impl Key {
     /// Check whether the key is an arrow key.
+    ///
+    /// Returns `true` if the key is an arrow key, `false` otherwise.
     pub fn is_arrow(&self) -> bool {
         matches!(
             self,
@@ -77,17 +79,26 @@ impl Key {
     }
 
     /// Check whether the key is a special key (arrow keys, Home/End, etc.).
+    ///
+    /// Returns `true` if the key is a special key, `false` otherwise.
     pub fn is_special(&self) -> bool {
         !matches!(self, Key::Char(_) | Key::Unknown)
     }
 
-    /// Check whether the key is a printable character.
+    /// Check whether the key is a ASCII character.
+    ///
+    /// Returns `true` if the key is a ASCII character, `false` otherwise.
     pub fn is_printable(&self) -> bool {
         matches!(self, Key::Char(c) if c.is_ascii_graphic() || *c == ' ')
     }
 }
 
 /// Parse mouse event from SGR format: \x1B[<b;x;yM or \x1B[<b;x;ym
+///
+/// * `buf` - The buffer containing the mouse event data.
+/// * `n` - The length of the content.
+///
+/// Returns `Some(MouseEvent)` if the event is valid, `None` otherwise.
 fn parse_mouse_event(buf: &[u8], n: usize) -> Option<MouseEvent> {
     if n < 6 || buf[0] != 0x1B || buf[1] != b'[' || buf[2] != b'<' {
         return None;
@@ -141,6 +152,8 @@ fn parse_mouse_event(buf: &[u8], n: usize) -> Option<MouseEvent> {
 }
 
 /// Parse the escape sequence and return the corresponding Key or Mouse event.
+///
+/// Returns `InputEvent::Key(Key::Escape)` if the sequence is invalid.
 fn parse_escape_sequence(buf: &[u8], n: usize) -> InputEvent {
     if n < 3 {
         return InputEvent::Key(Key::Escape);
@@ -191,6 +204,8 @@ fn parse_escape_sequence(buf: &[u8], n: usize) -> InputEvent {
 }
 
 /// Read input (key or mouse) from standard input.
+///
+/// Returns `Some(InputEvent)` if an event is detected, `None` otherwise.
 fn read_key() -> io::Result<Option<InputEvent>> {
     let mut stdin = io::stdin().lock();
     let mut buf = [0u8; 32];
@@ -210,12 +225,20 @@ fn read_key() -> io::Result<Option<InputEvent>> {
     }
 }
 
+/// Represents an input listener for receiving input events.
 pub struct InputListener {
+    /// The thread handle for the input listener.
     pub handle: Option<thread::JoinHandle<()>>,
+    /// The stop signal sender for the input listener.
     pub stop_signal: Option<Sender<()>>,
 }
 
 impl InputListener {
+    /// Create a new input listener that listens for key events at a specified rate.
+    ///
+    /// * `rate` - The rate at which to poll for input events.
+    ///
+    /// Returns a receiver for the input events.
     pub fn new(rate: Duration) -> Receiver<InputEvent> {
         let (input_tx, input_rx): (Sender<InputEvent>, Receiver<InputEvent>) = mpsc::channel();
         let (_, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
@@ -242,6 +265,8 @@ impl InputListener {
     }
 
     /// Stop the input listener thread
+    ///
+    /// Returns `Ok(())` if the listener was stopped successfully, or an error if it failed.
     pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(tx) = self.stop_signal.take() {
             tx.send(())?; // Send stop signal

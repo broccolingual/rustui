@@ -4,10 +4,13 @@ use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time;
 
-use crate::*;
+use crate::{Align, Attr, Cmd, Color, ColorExt, Framebuffer, RenderThread, Terminal};
 
+/// Represents a window with a framebuffer for rendering.
 pub struct Window {
+    /// The width of the window.
     pub width: usize,
+    /// The height of the window.
     pub height: usize,
     front_fb: Arc<Mutex<Framebuffer>>,
     back_fb: Arc<Mutex<Framebuffer>>,
@@ -18,6 +21,11 @@ pub struct Window {
 }
 
 impl Window {
+    /// Create a new window with the specified dimensions and an option to show FPS.
+    ///
+    /// * `show_fps` - Whether to display the FPS counter.
+    ///
+    /// Returns a `Window` instance if successful, or an error if it failed.
     pub fn new(show_fps: bool) -> Result<Self, Box<dyn std::error::Error>> {
         let (width, height) = Terminal::get_size()?;
         let front_fb = Arc::new(Mutex::new(Framebuffer::new(width, height)));
@@ -59,6 +67,10 @@ impl Window {
     }
 
     /// Initialize the window and start the rendering thread
+    ///
+    /// * `rendering_rate` - The rate at which to render frames.
+    ///
+    /// Returns `Ok(())` if the initialization was successful, or an error if it failed.
     pub fn initialize(
         &mut self,
         rendering_rate: time::Duration,
@@ -103,6 +115,8 @@ impl Window {
     }
 
     /// Draw the contents of the framebuffer
+    ///
+    /// * `f` - A closure that takes a mutable reference to the framebuffer.
     pub fn draw(&mut self, f: impl FnOnce(&mut Framebuffer)) {
         let fps = self.get_fps();
         let mut lock = self.back_fb.lock().unwrap();
@@ -122,6 +136,8 @@ impl Window {
     }
 
     /// Restore the terminal
+    ///
+    /// Returns `Ok(())` if the terminal was restored successfully, or an error if it failed.
     pub fn end(&mut self) -> io::Result<()> {
         Terminal::exec(Cmd::DisableSgrCoords)?;
         Terminal::exec(Cmd::DisableMouseReporting)?;
@@ -131,6 +147,8 @@ impl Window {
     }
 
     /// Get the current FPS
+    ///
+    /// Returns the current frames per second.
     fn get_fps(&mut self) -> f64 {
         if let Ok(fps) = self.fps_rx.try_recv() {
             self.fps = fps;

@@ -1,16 +1,24 @@
 use std::io::{self, Write};
 
-use crate::*;
+use crate::{Attr, Color, ColorExt};
 
+/// Represents a single cell in the framebuffer.
 #[derive(Clone, PartialEq, Debug)]
-pub struct Cell {
+struct Cell {
+    /// The character displayed in the cell.
     pub ch: char,
+    /// Text attributes (bold, italic, underline, etc.)
     pub attrs: Attr,
+    /// Foreground color as RGB values (0-255 each)
     pub fg: Color,
+    /// Background color as RGB values (0-255 each)
     pub bg: Color,
 }
 
 impl Cell {
+    /// Create a new cell with default values.
+    ///
+    /// Returns a `Cell` instance with default attributes and colors.
     pub fn new() -> Self {
         Self {
             ch: ' ',
@@ -27,20 +35,30 @@ impl Default for Cell {
     }
 }
 
+/// Represents the horizontal alignment of text.
 pub enum Align {
     Left,
     Center,
     Right,
 }
 
+/// Represents the framebuffer for rendering.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Framebuffer {
+    /// The width of the framebuffer.
     pub width: usize,
+    /// The height of the framebuffer.
     pub height: usize,
-    pub buffer: Vec<Cell>,
+    buffer: Vec<Cell>,
 }
 
 impl Framebuffer {
+    /// Create a new framebuffer with the specified width and height.
+    ///
+    /// * `width`: The width of the framebuffer.
+    /// * `height`: The height of the framebuffer.
+    ///
+    /// Returns a new `Framebuffer` instance.
     pub fn new(width: usize, height: usize) -> Self {
         let buffer = vec![Cell::default(); width * height];
         Self {
@@ -51,6 +69,11 @@ impl Framebuffer {
     }
 
     /// Check whether x and y fit within the frame buffer size.
+    ///
+    /// * `x`: The x-coordinate to check.
+    /// * `y`: The y-coordinate to check.
+    ///
+    /// Returns `true` if the coordinates are within the buffer size, `false` otherwise.
     pub fn check_range(&self, x: usize, y: usize) -> bool {
         x < self.width && y < self.height
     }
@@ -63,6 +86,13 @@ impl Framebuffer {
     }
 
     /// Write a character and its attributes to the buffer.
+    ///
+    /// * `x`: The x-coordinate of the cell to modify.
+    /// * `y`: The y-coordinate of the cell to modify.
+    /// * `ch`: The character to display in the cell.
+    /// * `attrs`: The attributes of the cell.
+    /// * `fg`: The foreground color of the cell.
+    /// * `bg`: The background color of the cell.
     pub fn set_char(&mut self, x: usize, y: usize, ch: char, attrs: Attr, fg: Color, bg: Color) {
         if self.check_range(x, y) {
             let idx = y * self.width + x;
@@ -74,6 +104,14 @@ impl Framebuffer {
     }
 
     /// Write a string and its attributes to the buffer.
+    ///
+    /// * `x`: The x-coordinate of the cell to modify.
+    /// * `y`: The y-coordinate of the cell to modify.
+    /// * `str`: The string to display in the cell.
+    /// * `attrs`: The attributes of the cell.
+    /// * `fg`: The foreground color of the cell.
+    /// * `bg`: The background color of the cell.
+    /// * `align`: The alignment of the text.
     pub fn set_str(
         &mut self,
         x: usize,
@@ -95,6 +133,10 @@ impl Framebuffer {
     }
 
     /// Draw the border around the buffer.
+    ///
+    /// * `attrs`: The attributes of the border.
+    /// * `fg`: The foreground color of the border.
+    /// * `bg`: The background color of the border.
     pub fn set_border(&mut self, attrs: Attr, fg: Color, bg: Color) {
         let w = self.width;
         let h = self.height;
@@ -119,6 +161,13 @@ impl Framebuffer {
     }
 
     /// Draw a vertical line in the buffer.
+    ///
+    /// * `x`: The x-coordinate of the line.
+    /// * `y_start`: The starting y-coordinate of the line.
+    /// * `y_end`: The ending y-coordinate of the line.
+    /// * `attrs`: The attributes of the line.
+    /// * `fg`: The foreground color of the line.
+    /// * `bg`: The background color of the line.
     pub fn set_vline(
         &mut self,
         x: usize,
@@ -134,6 +183,13 @@ impl Framebuffer {
     }
 
     /// Draw a horizontal line in the buffer.
+    ///
+    /// * `y`: The y-coordinate of the line.
+    /// * `x_start`: The starting x-coordinate of the line.
+    /// * `x_end`: The ending x-coordinate of the line.
+    /// * `attrs`: The attributes of the line.
+    /// * `fg`: The foreground color of the line.
+    /// * `bg`: The background color of the line.
     pub fn set_hline(
         &mut self,
         y: usize,
@@ -149,6 +205,10 @@ impl Framebuffer {
     }
 
     /// Combine the contents of the buffer.
+    ///
+    /// * `other`: The other framebuffer to combine with.
+    /// * `x_offset`: The x-coordinate offset to start combining.
+    /// * `y_offset`: The y-coordinate offset to start combining.
     pub fn combine(&mut self, other: &Framebuffer, x_offset: usize, y_offset: usize) {
         for y in 0..other.height {
             for x in 0..other.width {
@@ -161,6 +221,10 @@ impl Framebuffer {
     }
 
     /// Compare the back buffer and front buffer, draw the differences, and update the front buffer with the contents of the back buffer.
+    ///
+    /// * `back_fb`: The back buffer to compare against.
+    ///
+    /// Returns `Ok(())` if successful, or an error if the framebuffers do not match.
     pub fn refresh(&mut self, back_fb: &Framebuffer) -> io::Result<()> {
         if self.height != back_fb.height || self.width != back_fb.width {
             return Err(io::Error::new(
@@ -230,5 +294,139 @@ impl Framebuffer {
             self.buffer[idx] = back.clone(); // Copy the Cell to the front buffer
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cell_init() {
+        let cell = Cell::new();
+        assert_eq!(cell.ch, ' ');
+        assert_eq!(cell.attrs, Attr::NORMAL);
+        assert_eq!(cell.bg, Color::new());
+        assert_eq!(cell.fg, Color::new());
+    }
+
+    #[test]
+    fn test_fb_init() {
+        let fb = Framebuffer::new(4, 2);
+        assert_eq!(fb.width, 4);
+        assert_eq!(fb.height, 2);
+        assert_eq!(fb.buffer.len(), 8);
+    }
+
+    #[test]
+    fn test_fb_check_range() {
+        let fb = Framebuffer::new(4, 2);
+        assert!(fb.check_range(0, 0));
+        assert!(fb.check_range(3, 1));
+        assert!(!fb.check_range(4, 0));
+        assert!(!fb.check_range(0, 2));
+    }
+
+    #[test]
+    fn test_fb_clear() {
+        let mut fb = Framebuffer::new(4, 2);
+        fb.set_char(0, 0, 'X', Attr::NORMAL, Color::new(), Color::new());
+        fb.clear();
+        for cell in fb.buffer {
+            assert_eq!(cell.ch, ' ');
+            assert_eq!(cell.attrs, Attr::NORMAL);
+            assert_eq!(cell.bg, Color::new());
+            assert_eq!(cell.fg, Color::new());
+        }
+    }
+
+    #[test]
+    fn test_fb_set_char() {
+        let mut fb = Framebuffer::new(4, 2);
+        fb.set_char(0, 0, 'X', Attr::NORMAL, Color::new(), Color::new());
+        assert_eq!(fb.buffer[0].ch, 'X');
+        assert_eq!(fb.buffer[0].attrs, Attr::NORMAL);
+        assert_eq!(fb.buffer[0].bg, Color::new());
+        assert_eq!(fb.buffer[0].fg, Color::new());
+    }
+
+    #[test]
+    fn test_fb_set_str() {
+        let mut fb = Framebuffer::new(4, 2);
+        fb.set_str(
+            0,
+            0,
+            "XY",
+            Attr::NORMAL,
+            Color::new(),
+            Color::new(),
+            Align::Left,
+        );
+        assert_eq!(fb.buffer[0].ch, 'X');
+        assert_eq!(fb.buffer[1].ch, 'Y');
+    }
+
+    #[test]
+    fn test_fb_set_border() {
+        let mut fb = Framebuffer::new(4, 3);
+        fb.set_border(Attr::NORMAL, (255, 255, 255), Color::new());
+        assert_eq!(fb.buffer[0].ch, '┌');
+        assert_eq!(fb.buffer[1].ch, '─');
+        assert_eq!(fb.buffer[2].ch, '─');
+        assert_eq!(fb.buffer[3].ch, '┐');
+        assert_eq!(fb.buffer[4].ch, '│');
+        assert_eq!(fb.buffer[5].ch, ' ');
+        assert_eq!(fb.buffer[6].ch, ' ');
+        assert_eq!(fb.buffer[7].ch, '│');
+        assert_eq!(fb.buffer[8].ch, '└');
+        assert_eq!(fb.buffer[9].ch, '─');
+        assert_eq!(fb.buffer[10].ch, '─');
+        assert_eq!(fb.buffer[11].ch, '┘');
+    }
+
+    #[test]
+    fn test_fb_set_vline() {
+        let mut fb = Framebuffer::new(4, 3);
+        fb.set_vline(1, 0, 3, Attr::NORMAL, Color::new(), Color::new());
+        assert_eq!(fb.buffer[1].ch, '│');
+        assert_eq!(fb.buffer[5].ch, '│');
+        assert_eq!(fb.buffer[9].ch, '│');
+    }
+
+    #[test]
+    fn test_fb_set_hline() {
+        let mut fb = Framebuffer::new(4, 3);
+        fb.set_hline(1, 0, 4, Attr::NORMAL, Color::new(), Color::new());
+        assert_eq!(fb.buffer[4].ch, '─');
+        assert_eq!(fb.buffer[5].ch, '─');
+        assert_eq!(fb.buffer[6].ch, '─');
+        assert_eq!(fb.buffer[7].ch, '─');
+    }
+
+    #[test]
+    fn test_fb_combine() {
+        let mut fb1 = Framebuffer::new(3, 3);
+        fb1.set_border(Attr::NORMAL, Color::new(), Color::new());
+        let mut fb2 = Framebuffer::new(1, 1);
+        fb2.set_str(
+            0,
+            0,
+            "A",
+            Attr::BOLD,
+            Color::new(),
+            Color::new(),
+            Align::Left,
+        );
+        fb1.combine(&fb2, 1, 1);
+        assert_eq!(fb1.buffer[0].ch, '┌');
+        assert_eq!(fb1.buffer[1].ch, '─');
+        assert_eq!(fb1.buffer[2].ch, '┐');
+        assert_eq!(fb1.buffer[3].ch, '│');
+        assert_eq!(fb1.buffer[4].ch, 'A');
+        assert_eq!(fb1.buffer[4].attrs, Attr::BOLD);
+        assert_eq!(fb1.buffer[5].ch, '│');
+        assert_eq!(fb1.buffer[6].ch, '└');
+        assert_eq!(fb1.buffer[7].ch, '─');
+        assert_eq!(fb1.buffer[8].ch, '┘');
     }
 }

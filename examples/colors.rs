@@ -11,11 +11,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         // Check for key presses
-        if let Ok(event) = input_rx.try_recv() {
-            match event {
-                InputEvent::Key(Key::Char('q')) => break,
-                _ => (),
-            }
+        if let Ok(InputEvent::Key(Key::Char('q'))) = input_rx.try_recv() {
+            break; // Exit the loop if 'q' is pressed
         }
 
         // Draw the frame
