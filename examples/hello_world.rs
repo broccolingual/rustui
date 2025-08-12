@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 (64, 64, 64),    // Set background color
                 Align::Center,   // Set text alignment to center
             );
-        });
+        })?;
 
         thread::sleep(time::Duration::from_millis(100)); // Sleep to prevent high CPU usage
     }

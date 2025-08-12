@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Color::new(),
                 Align::Center,
             );
-        });
+        })?;
 
         thread::sleep(time::Duration::from_millis(100)); // Sleep to prevent high CPU usage
     }
