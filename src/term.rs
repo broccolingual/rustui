@@ -167,7 +167,7 @@ impl Terminal {
             Cmd::EnableSgrCoords => csi!("?1006h"),
             Cmd::DisableSgrCoords => csi!("?1006l"),
         };
-        print!("{}", ansi);
+        print!("{ansi}");
         io::stdout().flush()
     }
 
