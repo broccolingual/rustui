@@ -167,31 +167,6 @@ impl Color {
     }
 }
 
-/// Represents an RGB color.
-// pub type Color = (i32, i32, i32);
-
-/// Extension trait for RGB colors.
-// pub trait ColorExt {
-//     fn new() -> Self;
-//     fn is_valid(&self) -> bool;
-// }
-
-// impl ColorExt for Color {
-//     /// Creates an invalid/default color.
-//     ///
-//     /// Returns `(-1, -1, -1)` representing no color.
-//     fn new() -> Self {
-//         (-1, -1, -1)
-//     }
-
-//     /// Check if the color is valid
-//     ///
-//     /// Returns `true` if the color is valid (i.e., all components are between 0 and 255).
-//     fn is_valid(&self) -> bool {
-//         self.0 >= 0 && self.0 <= 255 && self.1 >= 0 && self.1 <= 255 && self.2 >= 0 && self.2 <= 255
-//     }
-// }
-
 /// Represents terminal commands.
 pub enum Cmd {
     ShowCursor,
