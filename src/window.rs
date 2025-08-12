@@ -1,6 +1,5 @@
 use std::io;
 use std::os::unix::io::AsRawFd;
-use std::sync::mpsc::Receiver;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time;
 
@@ -15,7 +14,7 @@ pub struct Window {
     front_fb: Arc<Mutex<Framebuffer>>,
     back_fb: Arc<Mutex<Framebuffer>>,
     terminal: Option<Terminal>,
-    fps_rx: Receiver<f64>,
+    render_thread: Option<RenderThread>,
     fps: f64,
     show_fps: bool,
 }
@@ -30,14 +29,13 @@ impl Window {
         let (width, height) = Terminal::get_size()?;
         let front_fb = Arc::new(Mutex::new(Framebuffer::new(width, height)));
         let back_fb = Arc::new(Mutex::new(Framebuffer::new(width, height)));
-        let (_, fps_rx) = std::sync::mpsc::channel();
         Ok(Self {
             width,
             height,
             front_fb,
             back_fb,
             terminal: None,
-            fps_rx,
+            render_thread: None,
             fps: 0.0,
             show_fps,
         })
@@ -62,8 +60,9 @@ impl Window {
     /// Start the rendering thread
     #[deprecated(since = "0.1.11", note = "Use `initialize()` method instead")]
     pub fn start(&mut self, rate: time::Duration) {
-        let fps_rx = RenderThread::new(Arc::clone(&self.front_fb), Arc::clone(&self.back_fb), rate);
-        self.fps_rx = fps_rx;
+        let render_thread =
+            RenderThread::new(Arc::clone(&self.front_fb), Arc::clone(&self.back_fb), rate);
+        self.render_thread = Some(render_thread);
     }
 
     /// Initialize the window and start the rendering thread
@@ -83,11 +82,11 @@ impl Window {
         Terminal::exec(Cmd::EnableMouseReporting)?;
         Terminal::exec(Cmd::EnableSgrCoords)?;
         self.terminal = Some(terminal);
-        self.fps_rx = RenderThread::new(
+        self.render_thread = Some(RenderThread::new(
             Arc::clone(&self.front_fb),
             Arc::clone(&self.back_fb),
             rendering_rate,
-        );
+        ));
         Ok(())
     }
 
@@ -150,7 +149,7 @@ impl Window {
     ///
     /// Returns the current frames per second.
     fn get_fps(&mut self) -> f64 {
-        if let Ok(fps) = self.fps_rx.try_recv() {
+        if let Ok(fps) = self.render_thread.as_ref().unwrap().try_recv_fps() {
             self.fps = fps;
         }
         self.fps

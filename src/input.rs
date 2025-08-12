@@ -228,9 +228,11 @@ fn read_key() -> io::Result<Option<InputEvent>> {
 /// Represents an input listener for receiving input events.
 pub struct InputListener {
     /// The thread handle for the input listener.
-    pub handle: Option<thread::JoinHandle<()>>,
+    handle: Option<thread::JoinHandle<()>>,
     /// The stop signal sender for the input listener.
-    pub stop_signal: Option<Sender<()>>,
+    stop_signal: Option<Sender<()>>,
+    /// The receiver for input events.
+    input_rx: Receiver<InputEvent>,
 }
 
 impl InputListener {
@@ -238,12 +240,12 @@ impl InputListener {
     ///
     /// * `rate` - The rate at which to poll for input events.
     ///
-    /// Returns a receiver for the input events.
-    pub fn new(rate: Duration) -> Receiver<InputEvent> {
+    /// Returns `InputListener` instance.
+    pub fn new(rate: Duration) -> Self {
         let (input_tx, input_rx): (Sender<InputEvent>, Receiver<InputEvent>) = mpsc::channel();
-        let (_, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
+        let (stop_tx, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
 
-        let _ = thread::spawn(move || {
+        let handle = thread::spawn(move || {
             loop {
                 if stop_rx.try_recv().is_ok() {
                     break; // Stop the loop if a stop signal is received
@@ -261,7 +263,18 @@ impl InputListener {
                 thread::sleep(rate);
             }
         });
-        input_rx
+        Self {
+            handle: Some(handle),
+            stop_signal: Some(stop_tx),
+            input_rx,
+        }
+    }
+
+    /// Try to receive an input event.
+    ///
+    /// Returns `Ok(InputEvent)` if an event is received, or an error if it fails.
+    pub fn try_recv(&self) -> Result<InputEvent, mpsc::TryRecvError> {
+        self.input_rx.try_recv()
     }
 
     /// Stop the input listener thread

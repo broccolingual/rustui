@@ -10,10 +10,12 @@ use crate::Framebuffer;
 
 /// Represents a render thread for rendering frames.
 pub struct RenderThread {
-    /// The thread handle for the rendering thread.
-    pub handle: Option<thread::JoinHandle<()>>,
-    /// The stop signal sender for the rendering thread.
-    pub stop_signal: Option<Sender<()>>,
+    /// The thread handle for the render thread.
+    handle: Option<thread::JoinHandle<()>>,
+    /// The stop signal sender for the render thread.
+    stop_signal: Option<Sender<()>>,
+    /// The frame rate receiver for the render thread.
+    fps_rx: Receiver<f64>,
 }
 
 impl RenderThread {
@@ -23,16 +25,16 @@ impl RenderThread {
     /// * `back_fb` - The back framebuffer to render from.
     /// * `rendering_rate` - The rate at which to render frames.
     ///
-    /// Returns a receiver for the frame rate updates.
+    /// Returns `RenderThread` instance.
     pub fn new(
         front_fb: Arc<Mutex<Framebuffer>>,
         back_fb: Arc<Mutex<Framebuffer>>,
         rendering_rate: time::Duration,
-    ) -> Receiver<f64> {
+    ) -> Self {
         let (fps_tx, fps_rx): (Sender<f64>, Receiver<f64>) = mpsc::channel();
-        let (_, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
+        let (stop_tx, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
 
-        let _ = thread::spawn(move || {
+        let handle = thread::spawn(move || {
             let mut last_sec = time::Instant::now();
             let mut frame_count = 0;
             let mut last_frame_time = time::Instant::now();
@@ -81,7 +83,15 @@ impl RenderThread {
                 }
             }
         });
-        fps_rx
+        Self {
+            handle: Some(handle),
+            stop_signal: Some(stop_tx),
+            fps_rx,
+        }
+    }
+
+    pub fn try_recv_fps(&self) -> Result<f64, mpsc::TryRecvError> {
+        self.fps_rx.try_recv()
     }
 
     /// Stop the render thread
