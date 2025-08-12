@@ -94,6 +94,14 @@ cargo run --example tetris
 
 ![](docs/ex_tetris.png)
 
+#### File Reader
+
+```bash
+cargo run --example file_reader <file_path>
+```
+
+![](docs/ex_file_reader.png)
+
 ## Platform Support
 
 Currently supports Unix-like systems:
@@ -130,4 +138,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**Note**: This library is designed for educational purposes and as a foundation for terminal-based applications. For production use, consider established libraries like `crossterm` or `ratatui-rs` depending on your needs.
+**Note**: This library is designed for educational purposes and as a foundation for terminal-based applications. For production use, consider established libraries like `crossterm` or `ratatui` depending on your needs.
