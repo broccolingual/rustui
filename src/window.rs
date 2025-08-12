@@ -1,7 +1,7 @@
 use std::io;
 use std::os::unix::io::AsRawFd;
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{self, Duration};
 
@@ -49,35 +49,6 @@ impl Window {
         })
     }
 
-    /// Change to raw mode
-    #[deprecated(since = "0.1.11", note = "Use `initialize()` method instead")]
-    pub fn init(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let fd = io::stdin().as_raw_fd();
-        let terminal = Terminal::enable_raw_mode(fd)?;
-        terminal.set_nonblocking()?;
-
-        Terminal::exec(Cmd::EnableAlternativeScreen)?;
-        Terminal::exec(Cmd::HideCursor)?;
-        Terminal::exec(Cmd::EnableMouseReporting)?;
-        Terminal::exec(Cmd::EnableSgrCoords)?;
-
-        self.terminal = Some(terminal);
-        Ok(())
-    }
-
-    /// Start the rendering thread
-    #[deprecated(since = "0.1.11", note = "Use `initialize()` method instead")]
-    pub fn start(&mut self, rate: time::Duration) {
-        self.rendering_rate = rate;
-        self.render_thread = Some(RenderThread::new(
-            Arc::clone(&self.front_fb),
-            Arc::clone(&self.back_fb),
-            rate,
-        ));
-        self.window_size_listener =
-            Some(WindowSizeListener::new(WINDOW_SIZE_CHANGE_DETECTION_RATE));
-    }
-
     /// Initialize the window and start the rendering thread
     ///
     /// * `rendering_rate` - The rate at which to render frames.
@@ -104,29 +75,6 @@ impl Window {
         self.window_size_listener =
             Some(WindowSizeListener::new(WINDOW_SIZE_CHANGE_DETECTION_RATE));
         Ok(())
-    }
-
-    /// Get a mutable reference to the buffer's Mutex
-    #[deprecated(
-        since = "0.1.11",
-        note = "Use `draw()` method instead for better encapsulation"
-    )]
-    pub fn get_canvas(&mut self) -> MutexGuard<'_, Framebuffer> {
-        let fps = self.get_fps();
-        let mut canvas = self.back_fb.lock().unwrap();
-        canvas.clear();
-        if self.show_fps {
-            canvas.set_str(
-                2,
-                1,
-                &format!("FPS: {fps:.2}"),
-                Attr::NORMAL | Attr::BOLD,
-                (128, 255, 128),
-                Color::new(),
-                Align::Left,
-            );
-        }
-        canvas
     }
 
     /// Draw the contents of the framebuffer
