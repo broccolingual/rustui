@@ -122,7 +122,7 @@ impl Core {
                 pos.y as usize + 1,
                 "  ",
                 Attr::NORMAL,
-                (255, 255, 255),
+                Color::White,
                 block.get_color(),
                 Align::Left,
             )
@@ -132,14 +132,14 @@ impl Core {
     fn update_field_frame(&mut self) {
         self.field_frame.clear();
         self.field_frame
-            .set_border(Attr::NORMAL, (255, 255, 255), Color::new());
+            .set_border(Attr::NORMAL, Color::White, Color::default());
         self.field_frame.set_str(
             0,
             0,
             "                      ",
             Attr::NORMAL,
-            (255, 255, 255),
-            Color::new(),
+            Color::White,
+            Color::default(),
             Align::Left,
         );
         for y in 0..field::FIELD_HEIGHT {
@@ -147,7 +147,7 @@ impl Core {
                 let color: Color;
                 match self.field.get_block(x, y) {
                     Some(block_type) => color = block_type.get_color(),
-                    None => color = Color::new(),
+                    None => color = Color::default(),
                 }
                 if y == 4 {
                     self.field_frame.set_str(
@@ -155,7 +155,7 @@ impl Core {
                         y + 1,
                         "──",
                         Attr::NORMAL,
-                        (255, 255, 255),
+                        Color::White,
                         color,
                         Align::Left,
                     );
@@ -166,7 +166,7 @@ impl Core {
                     y + 1,
                     "  ",
                     Attr::NORMAL,
-                    (255, 255, 255),
+                    Color::White,
                     color,
                     Align::Left,
                 );
@@ -180,8 +180,8 @@ impl Core {
             "NEXT",
             Align::Center,
             Attr::NORMAL,
-            (255, 255, 255),
-            Color::new(),
+            Color::White,
+            Color::default(),
         );
         self.next_block.init(block::Pos::new(2, 2));
         Self::draw_block_to_buffer(&mut self.next_block_frame, &self.next_block);
@@ -193,8 +193,8 @@ impl Core {
             "HOLD",
             Align::Center,
             Attr::NORMAL,
-            (255, 255, 255),
-            Color::new(),
+            Color::White,
+            Color::default(),
         );
         if let &Some(mut block) = &self.holding_block {
             block.init(block::Pos::new(2, 2));

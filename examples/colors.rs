@@ -21,32 +21,47 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "COLORS",
                 Align::Right,
                 Attr::NORMAL,
-                (255, 255, 255),
-                Color::new(),
+                Color::White,
+                Color::default(),
             );
-            for r in 0..4 {
-                for g in 0..4 {
-                    for b in 0..4 {
-                        let color = (r * 64 as i32, g * 64 as i32, b * 64 as i32);
-                        canvas.set_str(
-                            (r * 2 + g * 10 + 3) as usize,
-                            (b + 2) as usize,
-                            "  ",
-                            Attr::NORMAL,
-                            Color::new(),
-                            color,
-                            Align::Left,
-                        );
-                    }
+
+            // Draw color circle
+            let outer_radius: i32 = 12;
+            let inner_radius: i32 = 6;
+            for hue in 0..360 {
+                for radius in inner_radius..outer_radius {
+                    let x = (radius as f32 * (hue as f32).to_radians().cos()) as i32;
+                    let y = (radius as f32 * (hue as f32).to_radians().sin()) as i32;
+                    let sat = 255 * (radius - inner_radius - outer_radius)
+                        / (outer_radius - inner_radius);
+                    let color = Color::HSV((hue as f32 / 360.0 * 255.0) as u8, sat as u8, 255);
+                    canvas.set_str(
+                        ((canvas.width / 2) as i32 + x * 2) as usize,
+                        ((canvas.height / 2) as i32 + y) as usize,
+                        "  ",
+                        Attr::NORMAL,
+                        Color::default(),
+                        color,
+                        Align::Left,
+                    );
                 }
             }
             canvas.set_str(
+                canvas.width / 2 + 1,
+                canvas.height / 2,
+                "Color Circle",
+                Attr::BOLD,
+                Color::White,
+                Color::default(),
+                Align::Center,
+            );
+            canvas.set_str(
                 3,
-                6,
+                2,
                 "Press 'q' to quit",
                 Attr::BOLD,
-                Color::new(),
-                Color::new(),
+                Color::White,
+                Color::default(),
                 Align::Left,
             );
         })?;

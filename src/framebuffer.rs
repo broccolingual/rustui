@@ -1,6 +1,6 @@
 use std::io::{self, Write};
 
-use crate::{Attr, Color, ColorExt};
+use crate::{Attr, Color};
 
 /// Represents a single cell in the framebuffer.
 #[derive(Clone, PartialEq, Debug)]
@@ -23,8 +23,8 @@ impl Cell {
         Self {
             ch: ' ',
             attrs: Attr::NORMAL,
-            fg: Color::new(),
-            bg: Color::new(),
+            fg: Color::default(),
+            bg: Color::default(),
         }
     }
 }
@@ -293,8 +293,8 @@ impl Framebuffer {
 
         let mut stdout_lock = io::stdout().lock(); // Lock standard output
         let mut prev_attrs = Attr::NORMAL;
-        let mut prev_fg: Color = Color::new();
-        let mut prev_bg: Color = Color::new();
+        let mut prev_fg: Color = Color::default();
+        let mut prev_bg: Color = Color::default();
 
         stdout_lock.write_all("\x1B[0m".as_bytes())?; // Reset all attributes
         stdout_lock.flush()?;
@@ -324,25 +324,11 @@ impl Framebuffer {
             }
             if prev_fg != back.fg {
                 prev_fg = back.fg;
-                if back.fg.is_valid() {
-                    cell_output.push_str(&format!(
-                        "\x1B[38;2;{};{};{}m",
-                        back.fg.0, back.fg.1, back.fg.2
-                    ));
-                } else {
-                    cell_output.push_str("\x1B[39m"); // Reset foreground color
-                }
+                cell_output.push_str(&back.fg.to_ansi(true));
             }
             if prev_bg != back.bg {
                 prev_bg = back.bg;
-                if back.bg.is_valid() {
-                    cell_output.push_str(&format!(
-                        "\x1B[48;2;{};{};{}m",
-                        back.bg.0, back.bg.1, back.bg.2
-                    ));
-                } else {
-                    cell_output.push_str("\x1B[49m"); // Reset background color
-                }
+                cell_output.push_str(&back.bg.to_ansi(false));
             }
             cell_output.push(back.ch); // Add the character
 
@@ -364,8 +350,8 @@ mod tests {
         let cell = Cell::new();
         assert_eq!(cell.ch, ' ');
         assert_eq!(cell.attrs, Attr::NORMAL);
-        assert_eq!(cell.bg, Color::new());
-        assert_eq!(cell.fg, Color::new());
+        assert_eq!(cell.bg, Color::default());
+        assert_eq!(cell.fg, Color::default());
     }
 
     #[test]
@@ -388,24 +374,24 @@ mod tests {
     #[test]
     fn test_fb_clear() {
         let mut fb = Framebuffer::new(4, 2);
-        fb.set_char(0, 0, 'X', Attr::NORMAL, Color::new(), Color::new());
+        fb.set_char(0, 0, 'X', Attr::NORMAL, Color::default(), Color::default());
         fb.clear();
         for cell in fb.buffer {
             assert_eq!(cell.ch, ' ');
             assert_eq!(cell.attrs, Attr::NORMAL);
-            assert_eq!(cell.bg, Color::new());
-            assert_eq!(cell.fg, Color::new());
+            assert_eq!(cell.bg, Color::default());
+            assert_eq!(cell.fg, Color::default());
         }
     }
 
     #[test]
     fn test_fb_set_char() {
         let mut fb = Framebuffer::new(4, 2);
-        fb.set_char(0, 0, 'X', Attr::NORMAL, Color::new(), Color::new());
+        fb.set_char(0, 0, 'X', Attr::NORMAL, Color::default(), Color::default());
         assert_eq!(fb.buffer[0].ch, 'X');
         assert_eq!(fb.buffer[0].attrs, Attr::NORMAL);
-        assert_eq!(fb.buffer[0].bg, Color::new());
-        assert_eq!(fb.buffer[0].fg, Color::new());
+        assert_eq!(fb.buffer[0].bg, Color::default());
+        assert_eq!(fb.buffer[0].fg, Color::default());
     }
 
     #[test]
@@ -416,8 +402,8 @@ mod tests {
             0,
             "XY",
             Attr::NORMAL,
-            Color::new(),
-            Color::new(),
+            Color::default(),
+            Color::default(),
             Align::Left,
         );
         assert_eq!(fb.buffer[0].ch, 'X');
@@ -427,25 +413,25 @@ mod tests {
     #[test]
     fn test_fb_set_border() {
         let mut fb = Framebuffer::new(4, 3);
-        fb.set_border(Attr::NORMAL, (255, 255, 255), Color::new());
-        assert_eq!(fb.buffer[0].ch, '┌');
+        fb.set_border(Attr::NORMAL, Color::White, Color::default());
+        assert_eq!(fb.buffer[0].ch, '╭');
         assert_eq!(fb.buffer[1].ch, '─');
         assert_eq!(fb.buffer[2].ch, '─');
-        assert_eq!(fb.buffer[3].ch, '┐');
+        assert_eq!(fb.buffer[3].ch, '╮');
         assert_eq!(fb.buffer[4].ch, '│');
         assert_eq!(fb.buffer[5].ch, ' ');
         assert_eq!(fb.buffer[6].ch, ' ');
         assert_eq!(fb.buffer[7].ch, '│');
-        assert_eq!(fb.buffer[8].ch, '└');
+        assert_eq!(fb.buffer[8].ch, '╰');
         assert_eq!(fb.buffer[9].ch, '─');
         assert_eq!(fb.buffer[10].ch, '─');
-        assert_eq!(fb.buffer[11].ch, '┘');
+        assert_eq!(fb.buffer[11].ch, '╯');
     }
 
     #[test]
     fn test_fb_set_vline() {
         let mut fb = Framebuffer::new(4, 3);
-        fb.set_vline(1, 0, 3, Attr::NORMAL, Color::new(), Color::new());
+        fb.set_vline(1, 0, 3, Attr::NORMAL, Color::default(), Color::default());
         assert_eq!(fb.buffer[1].ch, '│');
         assert_eq!(fb.buffer[5].ch, '│');
         assert_eq!(fb.buffer[9].ch, '│');
@@ -454,7 +440,7 @@ mod tests {
     #[test]
     fn test_fb_set_hline() {
         let mut fb = Framebuffer::new(4, 3);
-        fb.set_hline(1, 0, 4, Attr::NORMAL, Color::new(), Color::new());
+        fb.set_hline(1, 0, 4, Attr::NORMAL, Color::default(), Color::default());
         assert_eq!(fb.buffer[4].ch, '─');
         assert_eq!(fb.buffer[5].ch, '─');
         assert_eq!(fb.buffer[6].ch, '─');
@@ -464,27 +450,27 @@ mod tests {
     #[test]
     fn test_fb_combine() {
         let mut fb1 = Framebuffer::new(3, 3);
-        fb1.set_border(Attr::NORMAL, Color::new(), Color::new());
+        fb1.set_border(Attr::NORMAL, Color::default(), Color::default());
         let mut fb2 = Framebuffer::new(1, 1);
         fb2.set_str(
             0,
             0,
             "A",
             Attr::BOLD,
-            Color::new(),
-            Color::new(),
+            Color::default(),
+            Color::default(),
             Align::Left,
         );
         fb1.combine(&fb2, 1, 1);
-        assert_eq!(fb1.buffer[0].ch, '┌');
+        assert_eq!(fb1.buffer[0].ch, '╭');
         assert_eq!(fb1.buffer[1].ch, '─');
-        assert_eq!(fb1.buffer[2].ch, '┐');
+        assert_eq!(fb1.buffer[2].ch, '╮');
         assert_eq!(fb1.buffer[3].ch, '│');
         assert_eq!(fb1.buffer[4].ch, 'A');
         assert_eq!(fb1.buffer[4].attrs, Attr::BOLD);
         assert_eq!(fb1.buffer[5].ch, '│');
-        assert_eq!(fb1.buffer[6].ch, '└');
+        assert_eq!(fb1.buffer[6].ch, '╰');
         assert_eq!(fb1.buffer[7].ch, '─');
-        assert_eq!(fb1.buffer[8].ch, '┘');
+        assert_eq!(fb1.buffer[8].ch, '╯');
     }
 }

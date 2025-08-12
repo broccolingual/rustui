@@ -65,8 +65,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "TETRIS",
                 Align::Right,
                 Attr::NORMAL,
-                (255, 255, 255),
-                Color::new(),
+                Color::White,
+                Color::default(),
             );
             canvas.combine(
                 &core.field_frame,
@@ -92,14 +92,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if core.is_gameover {
         win.draw(|canvas| {
-            canvas.set_border(term::Attr::BOLD, (255, 0, 0), (0, 0, 0));
+            canvas.set_border(Attr::NORMAL, Color::Red, Color::default());
             canvas.set_str(
                 canvas.width / 2,
                 canvas.height / 2,
                 "G A M E  O V E R",
-                term::Attr::BOLD,
-                (255, 128, 128),
-                (0, 0, 0),
+                Attr::BOLD,
+                Color::Red,
+                Color::default(),
                 Align::Center,
             );
         })?;

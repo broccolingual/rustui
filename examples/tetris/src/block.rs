@@ -55,13 +55,13 @@ impl BlockType {
 
     pub fn get_color(&self) -> Color {
         match self {
-            BlockType::I => (0, 255, 255),
-            BlockType::O => (255, 255, 0),
-            BlockType::S => (0, 255, 0),
-            BlockType::Z => (255, 0, 0),
-            BlockType::J => (0, 0, 255),
-            BlockType::L => (255, 165, 0),
-            BlockType::T => (128, 0, 128),
+            BlockType::I => Color::RGB(0, 255, 255),
+            BlockType::O => Color::RGB(255, 255, 0),
+            BlockType::S => Color::RGB(0, 255, 0),
+            BlockType::Z => Color::RGB(255, 0, 0),
+            BlockType::J => Color::RGB(0, 0, 255),
+            BlockType::L => Color::RGB(255, 165, 0),
+            BlockType::T => Color::RGB(128, 0, 128),
         }
     }
 }

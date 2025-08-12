@@ -26,8 +26,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "INPUTS",
                 Align::Right,
                 Attr::NORMAL,
-                (255, 255, 255),
-                Color::new(),
+                Color::White,
+                Color::default(),
             );
             let display_text = match key_last_pressed {
                 Some(InputEvent::Key(key)) => format!("Key: {:?}", key),
@@ -52,8 +52,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 canvas.height / 2,
                 &full_text,
                 Attr::NORMAL,
-                (255, 255, 255),
-                Color::new(),
+                Color::White,
+                Color::default(),
                 Align::Center,
             );
         })?;

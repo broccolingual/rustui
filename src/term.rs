@@ -33,6 +33,12 @@ bitflags! {
     }
 }
 
+impl Default for Attr {
+    fn default() -> Self {
+        Attr::NORMAL
+    }
+}
+
 impl Attr {
     /// Convert attributes to ANSI escape codes
     ///
@@ -65,30 +71,126 @@ impl Attr {
     }
 }
 
+/// Represents a color in the terminal.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Color {
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+    RGB(u8, u8, u8),
+    HSV(u8, u8, u8),
+    None,
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Color::None
+    }
+}
+
+impl Color {
+    /// Convert the color to an ANSI escape code.
+    ///
+    /// Returns an ANSI escape code string for the color.
+    pub fn to_ansi(&self, fg: bool) -> String {
+        match self {
+            Color::Black => csi!(if fg { "30m" } else { "40m" }),
+            Color::Red => csi!(if fg { "31m" } else { "41m" }),
+            Color::Green => csi!(if fg { "32m" } else { "42m" }),
+            Color::Yellow => csi!(if fg { "33m" } else { "43m" }),
+            Color::Blue => csi!(if fg { "34m" } else { "44m" }),
+            Color::Magenta => csi!(if fg { "35m" } else { "45m" }),
+            Color::Cyan => csi!(if fg { "36m" } else { "46m" }),
+            Color::White => csi!(if fg { "37m" } else { "47m" }),
+            Color::RGB(r, g, b) => {
+                if fg {
+                    let s = format!("38;2;{};{};{}m", r, g, b);
+                    csi!(&s)
+                } else {
+                    let s = format!("48;2;{};{};{}m", r, g, b);
+                    csi!(&s)
+                }
+            }
+            Color::HSV(h, s, v) => {
+                let norm_h = (*h as f32 / 255.0) * 360.0;
+                let norm_s = *s as f32 / 255.0;
+                let norm_v = *v as f32 / 255.0;
+                let c = norm_v * norm_s;
+                let x = c * (1.0 - ((norm_h / 60.0) % 2.0 - 1.0).abs());
+                let m = norm_v - c;
+                let mut r;
+                let mut g;
+                let mut b;
+                if norm_h < 60.0 {
+                    r = c;
+                    g = x;
+                    b = 0.0;
+                } else if norm_h < 120.0 {
+                    r = x;
+                    g = c;
+                    b = 0.0;
+                } else if norm_h < 180.0 {
+                    r = 0.0;
+                    g = c;
+                    b = x;
+                } else if norm_h < 240.0 {
+                    r = 0.0;
+                    g = x;
+                    b = c;
+                } else if norm_h < 300.0 {
+                    r = x;
+                    g = 0.0;
+                    b = c;
+                } else {
+                    r = c;
+                    g = 0.0;
+                    b = x;
+                }
+                r = (r + m) * 255.0;
+                g = (g + m) * 255.0;
+                b = (b + m) * 255.0;
+                if fg {
+                    let s = format!("38;2;{};{};{}m", r as u8, g as u8, b as u8);
+                    csi!(&s)
+                } else {
+                    let s = format!("48;2;{};{};{}m", r as u8, g as u8, b as u8);
+                    csi!(&s)
+                }
+            }
+            Color::None => csi!(if fg { "39m" } else { "49m" }),
+        }
+    }
+}
+
 /// Represents an RGB color.
-pub type Color = (i32, i32, i32);
+// pub type Color = (i32, i32, i32);
 
 /// Extension trait for RGB colors.
-pub trait ColorExt {
-    fn new() -> Self;
-    fn is_valid(&self) -> bool;
-}
+// pub trait ColorExt {
+//     fn new() -> Self;
+//     fn is_valid(&self) -> bool;
+// }
 
-impl ColorExt for Color {
-    /// Creates an invalid/default color.
-    ///
-    /// Returns `(-1, -1, -1)` representing no color.
-    fn new() -> Self {
-        (-1, -1, -1)
-    }
+// impl ColorExt for Color {
+//     /// Creates an invalid/default color.
+//     ///
+//     /// Returns `(-1, -1, -1)` representing no color.
+//     fn new() -> Self {
+//         (-1, -1, -1)
+//     }
 
-    /// Check if the color is valid
-    ///
-    /// Returns `true` if the color is valid (i.e., all components are between 0 and 255).
-    fn is_valid(&self) -> bool {
-        self.0 >= 0 && self.0 <= 255 && self.1 >= 0 && self.1 <= 255 && self.2 >= 0 && self.2 <= 255
-    }
-}
+//     /// Check if the color is valid
+//     ///
+//     /// Returns `true` if the color is valid (i.e., all components are between 0 and 255).
+//     fn is_valid(&self) -> bool {
+//         self.0 >= 0 && self.0 <= 255 && self.1 >= 0 && self.1 <= 255 && self.2 >= 0 && self.2 <= 255
+//     }
+// }
 
 /// Represents terminal commands.
 pub enum Cmd {
@@ -221,22 +323,17 @@ mod tests {
 
     #[test]
     fn test_color_init() {
-        let color = Color::new();
-        assert_eq!(color, (-1, -1, -1));
+        let color = Color::default();
+        assert_eq!(color, Color::None);
     }
 
     #[test]
     fn test_color_is_valid() {
-        let color = Color::new();
-        assert!(!color.is_valid());
-
-        let color = (255, 255, 255);
-        assert!(color.is_valid());
-
-        let color = (-1, 128, 128);
-        assert!(!color.is_valid());
-
-        let color = (256, 128, 128);
-        assert!(!color.is_valid());
+        assert!(Color::Black.to_ansi(true).contains("30m"));
+        assert!(Color::Red.to_ansi(false).contains("41m"));
+        assert!(Color::RGB(255, 0, 0).to_ansi(true).contains("38;2;255;0;0"));
+        assert!(Color::HSV(0, 255, 255)
+            .to_ansi(true)
+            .contains("38;2;255;0;0"));
     }
 }

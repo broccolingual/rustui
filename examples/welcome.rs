@@ -21,16 +21,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "WELCOME",
                 Align::Right,
                 Attr::NORMAL,
-                (255, 255, 255),
-                Color::new(),
+                Color::White,
+                Color::default(),
             );
             canvas.set_str(
                 canvas.width / 2, // Center the text horizontally
                 canvas.height / 2 - 2,
                 r"  ____  _   _ ____ _____ _   _ ___",
                 Attr::BOLD,
-                (255, 128, 128),
-                Color::new(),
+                Color::Red,
+                Color::default(),
                 Align::Center,
             );
             canvas.set_str(
@@ -38,8 +38,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 canvas.height / 2 - 1,
                 r" |  _ \| | | / ___|_   _| | | |_ _|",
                 Attr::BOLD,
-                (255, 128, 128),
-                Color::new(),
+                Color::Red,
+                Color::default(),
                 Align::Center,
             );
             canvas.set_str(
@@ -47,8 +47,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 canvas.height / 2,
                 r"| |_) | | | \___ \ | | | | | || |",
                 Attr::BOLD,
-                (255, 128, 128),
-                Color::new(),
+                Color::Red,
+                Color::default(),
                 Align::Center,
             );
             canvas.set_str(
@@ -56,8 +56,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 canvas.height / 2 + 1,
                 r"|  _ <| |_| |___) || | | |_| || |",
                 Attr::BOLD,
-                (255, 128, 128),
-                Color::new(),
+                Color::Red,
+                Color::default(),
                 Align::Center,
             );
             canvas.set_str(
@@ -65,8 +65,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 canvas.height / 2 + 2,
                 r" |_| \_\\___/|____/ |_|  \___/|___|",
                 Attr::BOLD,
-                (255, 128, 128),
-                Color::new(),
+                Color::Red,
+                Color::default(),
                 Align::Center,
             );
             canvas.set_str(
@@ -74,8 +74,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 canvas.height / 2 + 3,
                 "The simplest terminal UI library",
                 Attr::NORMAL,
-                (255, 255, 255),
-                Color::new(),
+                Color::White,
+                Color::default(),
                 Align::Center,
             );
         })?;
