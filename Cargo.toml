@@ -35,3 +35,7 @@ path = "examples/inputs.rs"
 [[example]]
 name = "tetris"
 path = "examples/tetris/src/main.rs"
+
+[[example]]
+name = "file_reader"
+path = "examples/file_reader.rs"
