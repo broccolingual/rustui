@@ -34,15 +34,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Draw the frame
         win.draw(|canvas| {
-            canvas.set_border(Attr::NORMAL, (255, 255, 255), Color::new()); // Set border
+            canvas.set_named_border(
+                "HELLO WORLD",
+                Align::Right,
+                Attr::NORMAL,
+                Color::White,
+                Color::default(),
+            ); // Set a named border for the canvas
             canvas.set_str(
                 canvas.width / 2, // Center the text horizontally
                 canvas.height / 2,
                 "Hello, world! (Press 'q' to quit)",
-                Attr::NORMAL,    // Set text decoration
-                (128, 255, 128), // Set text color
-                (64, 64, 64),    // Set background color
-                Align::Center,   // Set text alignment to center
+                Attr::NORMAL,              // Set text decoration
+                Color::Green,              // Set text color
+                Color::RGB(128, 192, 128), // Set background color
+                Align::Center,             // Set text alignment to center
             );
         })?;
 

@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{self, Duration};
 
-use crate::{Align, Attr, Cmd, Color, ColorExt, Framebuffer, RenderThread, Terminal};
+use crate::{Align, Attr, Cmd, Color, Framebuffer, RenderThread, Terminal};
 
 const WINDOW_SIZE_CHANGE_DETECTION_RATE: time::Duration = time::Duration::from_millis(500); // ms
 
@@ -96,8 +96,8 @@ impl Window {
                 1,
                 &format!("FPS: {fps:.2}"),
                 Attr::BOLD,
-                (128, 255, 128),
-                Color::new(),
+                Color::Green,
+                Color::default(),
                 Align::Left,
             );
         }
