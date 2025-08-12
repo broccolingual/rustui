@@ -17,7 +17,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Draw the frame
         win.draw(|canvas| {
-            canvas.set_border(Attr::NORMAL, (255, 255, 255), Color::new()); // Set border
+            canvas.set_named_border(
+                "WELCOME",
+                Align::Right,
+                Attr::NORMAL,
+                (255, 255, 255),
+                Color::new(),
+            );
             canvas.set_str(
                 canvas.width / 2, // Center the text horizontally
                 canvas.height / 2 - 2,

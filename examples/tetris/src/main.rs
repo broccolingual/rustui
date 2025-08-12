@@ -61,7 +61,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let x_center = canvas.width / 2;
             let y_center = canvas.height / 2;
 
-            canvas.set_border(Attr::NORMAL, (255, 255, 255), Color::new());
+            canvas.set_named_border(
+                "TETRIS",
+                Align::Right,
+                Attr::NORMAL,
+                (255, 255, 255),
+                Color::new(),
+            );
             canvas.combine(
                 &core.field_frame,
                 x_center - core.field_frame.width / 2,

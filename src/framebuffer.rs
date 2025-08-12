@@ -154,10 +154,50 @@ impl Framebuffer {
         }
 
         // Draw the corners
-        self.set_char(0, 0, '┌', attrs, fg, bg);
-        self.set_char(w - 1, 0, '┐', attrs, fg, bg);
-        self.set_char(0, h - 1, '└', attrs, fg, bg);
-        self.set_char(w - 1, h - 1, '┘', attrs, fg, bg);
+        self.set_char(0, 0, '╭', attrs, fg, bg);
+        self.set_char(w - 1, 0, '╮', attrs, fg, bg);
+        self.set_char(0, h - 1, '╰', attrs, fg, bg);
+        self.set_char(w - 1, h - 1, '╯', attrs, fg, bg);
+    }
+
+    /// Set a named border around the buffer.
+    ///
+    /// * `title`: The name to display in the border.
+    /// * `align`: The alignment of the name.
+    /// * `attrs`: The attributes of the border.
+    /// * `fg`: The foreground color of the border.
+    /// * `bg`: The background color of the border.
+    pub fn set_named_border(
+        &mut self,
+        title: &str,
+        align: Align,
+        attrs: Attr,
+        fg: Color,
+        bg: Color,
+    ) {
+        self.set_border(attrs, fg, bg);
+        let spaced_title = format!(" {title} ");
+        match align {
+            Align::Left => self.set_str(2, 0, &spaced_title, attrs, fg, bg, Align::Left),
+            Align::Center => self.set_str(
+                self.width / 2,
+                0,
+                &spaced_title,
+                attrs,
+                fg,
+                bg,
+                Align::Center,
+            ),
+            Align::Right => self.set_str(
+                self.width.saturating_sub(2),
+                0,
+                &spaced_title,
+                attrs,
+                fg,
+                bg,
+                Align::Right,
+            ),
+        }
     }
 
     /// Draw a vertical line in the buffer.
@@ -217,6 +257,24 @@ impl Framebuffer {
                     self.buffer[idx] = other.buffer[y * other.width + x].clone();
                 }
             }
+        }
+    }
+
+    /// Set the foreground color for all cells in the buffer.
+    ///
+    /// * `color`: The color to set.
+    pub fn set_fg_color(&mut self, color: Color) {
+        for i in 0..self.height * self.width {
+            self.buffer[i].fg = color;
+        }
+    }
+
+    /// Set the background color for all cells in the buffer.
+    ///
+    /// * `color`: The color to set.
+    pub fn set_bg_color(&mut self, color: Color) {
+        for i in 0..self.height * self.width {
+            self.buffer[i].bg = color;
         }
     }
 

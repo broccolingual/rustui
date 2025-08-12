@@ -176,16 +176,12 @@ impl Core {
 
     fn update_next_block_frame(&mut self) {
         self.next_block_frame.clear();
-        self.next_block_frame
-            .set_border(Attr::NORMAL, (255, 255, 255), Color::new());
-        self.next_block_frame.set_str(
-            self.next_block_frame.width / 2,
-            0,
+        self.next_block_frame.set_named_border(
             "NEXT",
+            Align::Center,
             Attr::NORMAL,
             (255, 255, 255),
             Color::new(),
-            Align::Center,
         );
         self.next_block.init(block::Pos::new(2, 2));
         Self::draw_block_to_buffer(&mut self.next_block_frame, &self.next_block);
@@ -193,16 +189,12 @@ impl Core {
 
     fn update_holding_block_frame(&mut self) {
         self.holding_block_frame.clear();
-        self.holding_block_frame
-            .set_border(Attr::NORMAL, (255, 255, 255), Color::new());
-        self.holding_block_frame.set_str(
-            self.holding_block_frame.width / 2,
-            0,
+        self.holding_block_frame.set_named_border(
             "HOLD",
+            Align::Center,
             Attr::NORMAL,
             (255, 255, 255),
             Color::new(),
-            Align::Center,
         );
         if let &Some(mut block) = &self.holding_block {
             block.init(block::Pos::new(2, 2));
