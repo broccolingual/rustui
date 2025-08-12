@@ -90,6 +90,9 @@ impl RenderThread {
         }
     }
 
+    /// Try to receive the current FPS
+    ///
+    /// Returns the current FPS if available, or an error if not.
     pub fn try_recv_fps(&self) -> Result<f64, mpsc::TryRecvError> {
         self.fps_rx.try_recv()
     }

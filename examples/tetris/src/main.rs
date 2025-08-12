@@ -23,9 +23,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ));
     }
 
-    let x_center = win.width / 2;
-    let y_center = win.height / 2;
-
     let mut core = Core::new(DROP_COUNTER_MAX, MOVING_AFTER_DROP_COUNTER_MAX);
 
     loop {
@@ -61,6 +58,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         core.proc_before_draw();
 
         win.draw(|canvas| {
+            let x_center = canvas.width / 2;
+            let y_center = canvas.height / 2;
+
             canvas.set_border(Attr::NORMAL, (255, 255, 255), Color::new());
             canvas.combine(
                 &core.field_frame,
@@ -77,7 +77,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 x_center + core.field_frame.width / 2 + 2,
                 y_center - core.field_frame.height / 2 + 1,
             );
-        });
+        })?;
 
         core.proc_after_draw();
 
@@ -88,15 +88,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         win.draw(|canvas| {
             canvas.set_border(term::Attr::BOLD, (255, 0, 0), (0, 0, 0));
             canvas.set_str(
-                x_center,
-                y_center,
+                canvas.width / 2,
+                canvas.height / 2,
                 "G A M E  O V E R",
                 term::Attr::BOLD,
                 (255, 128, 128),
                 (0, 0, 0),
                 Align::Center,
             );
-        });
+        })?;
         thread::sleep(time::Duration::from_secs(2));
     }
     Ok(())
