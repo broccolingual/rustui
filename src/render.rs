@@ -1,6 +1,6 @@
 use std::sync::TryLockError;
 use std::sync::{
-    mpsc::{self, Receiver, Sender},
+    mpsc::{self, Receiver, Sender, SyncSender},
     Arc, Mutex,
 };
 use std::thread;
@@ -31,7 +31,7 @@ impl RenderThread {
         back_fb: Arc<Mutex<Framebuffer>>,
         rendering_rate: time::Duration,
     ) -> Self {
-        let (fps_tx, fps_rx): (Sender<f64>, Receiver<f64>) = mpsc::channel();
+        let (fps_tx, fps_rx): (SyncSender<f64>, Receiver<f64>) = mpsc::sync_channel(1);
         let (stop_tx, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
 
         let handle = thread::spawn(move || {
@@ -75,8 +75,10 @@ impl RenderThread {
                 let elapsed = last_sec.elapsed();
                 if elapsed >= time::Duration::from_secs(1) {
                     let fps = frame_count as f64 / elapsed.as_secs_f64();
-                    if fps_tx.send(fps).is_err() {
-                        break; // Stop the loop if the receiver is closed
+                    match fps_tx.try_send(fps) {
+                        Ok(_) => {}
+                        Err(mpsc::TrySendError::Full(_)) => {} // If the channel is full, we can drop the event
+                        Err(mpsc::TrySendError::Disconnected(_)) => break, // Stop the loop if the receiver is dropped
                     }
                     frame_count = 0;
                     last_sec = time::Instant::now();

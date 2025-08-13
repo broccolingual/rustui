@@ -259,6 +259,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_csi_macro() {
+        assert_eq!(csi!("?25h"), "\x1B[?25h");
+    }
+
+    #[test]
+    fn test_attr_default() {
+        let attr = Attr::default();
+        assert_eq!(attr, Attr::NORMAL);
+    }
+
+    #[test]
     fn test_attr_to_ansi() {
         let attr = Attr::BOLD | Attr::UNDERLINE;
         assert_eq!(attr.to_ansi(), "\x1B[1;4m");
@@ -271,18 +282,13 @@ mod tests {
     }
 
     #[test]
-    fn test_csi_macro() {
-        assert_eq!(csi!("?25h"), "\x1B[?25h");
-    }
-
-    #[test]
-    fn test_color_init() {
+    fn test_color_default() {
         let color = Color::default();
         assert_eq!(color, Color::None);
     }
 
     #[test]
-    fn test_color_is_valid() {
+    fn test_color_to_ansi() {
         assert!(Color::Black.to_ansi(true).contains("30m"));
         assert!(Color::Red.to_ansi(false).contains("41m"));
         assert!(Color::RGB(255, 0, 0).to_ansi(true).contains("38;2;255;0;0"));

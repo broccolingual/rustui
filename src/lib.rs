@@ -30,14 +30,19 @@ rustui is optimized for performance with:
 */
 
 /// A module for handling the framebuffer.
+#[cfg(target_os = "linux")]
 pub mod framebuffer;
 /// A module for handling user input.
+#[cfg(target_os = "linux")]
 pub mod input;
 /// A module for a rendering context.
+#[cfg(target_os = "linux")]
 pub mod render;
 /// A module for handling terminal colors and attributes.
+#[cfg(target_os = "linux")]
 pub mod term;
 /// A module for handling windowing.
+#[cfg(target_os = "linux")]
 pub mod window;
 
 pub use framebuffer::*;

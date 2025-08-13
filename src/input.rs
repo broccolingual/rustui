@@ -277,8 +277,10 @@ impl InputListener {
 
                 match read_key(&mut stdin, &mut buf) {
                     Ok(Some(event)) => {
-                        if input_tx.try_send(event).is_err() {
-                            break; // Stop the loop if the receiver is dropped
+                        match input_tx.try_send(event) {
+                            Ok(_) => {}
+                            Err(mpsc::TrySendError::Full(_)) => {} // If the channel is full, we can drop the event
+                            Err(mpsc::TrySendError::Disconnected(_)) => break, // Stop the loop if the receiver is dropped
                         }
                     }
                     Ok(None) => {} // No input
@@ -319,8 +321,239 @@ impl InputListener {
 
 impl Drop for InputListener {
     fn drop(&mut self) {
-        if let Err(e) = self.stop() {
-            eprintln!("Error stopping input listener: {e}");
-        }
+        let _ = self.stop();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_key_is_arrow() {
+        // Arrow keys
+        assert!(Key::ArrowUp.is_arrow());
+        assert!(Key::ArrowDown.is_arrow());
+        assert!(Key::ArrowLeft.is_arrow());
+        assert!(Key::ArrowRight.is_arrow());
+
+        // Not arrow keys
+        assert!(!Key::Home.is_arrow());
+        assert!(!Key::Char('a').is_arrow());
+        assert!(!Key::F1.is_arrow());
+        assert!(!Key::Unknown.is_arrow());
+    }
+
+    #[test]
+    fn test_key_is_special() {
+        // Special keys
+        assert!(Key::ArrowUp.is_special());
+        assert!(Key::Home.is_special());
+        assert!(Key::End.is_special());
+        assert!(Key::F1.is_special());
+        assert!(Key::PageUp.is_special());
+        assert!(Key::Delete.is_special());
+        assert!(Key::Escape.is_special());
+
+        // Not special keys
+        assert!(!Key::Char('a').is_special());
+        assert!(!Key::Char(' ').is_special());
+        assert!(!Key::Char('1').is_special());
+        assert!(!Key::Unknown.is_special());
+    }
+
+    #[test]
+    fn test_key_is_printable() {
+        // Printable characters
+        assert!(Key::Char('a').is_printable());
+        assert!(Key::Char('Z').is_printable());
+        assert!(Key::Char('1').is_printable());
+        assert!(Key::Char(' ').is_printable());
+        assert!(Key::Char('!').is_printable());
+
+        // Non-printable
+        assert!(!Key::Char('\n').is_printable());
+        assert!(!Key::Char('\t').is_printable());
+        assert!(!Key::ArrowUp.is_printable());
+        assert!(!Key::F1.is_printable());
+        assert!(!Key::Unknown.is_printable());
+    }
+
+    #[test]
+    fn test_parse_mouse_event_press() {
+        // Left mouse button press at (10, 20): \x1B[<0;10;20M
+        let buf = b"\x1B[<0;10;20M";
+        let result = parse_mouse_event(buf, buf.len());
+
+        assert_eq!(
+            result,
+            Some(MouseEvent::Press {
+                button: MouseButton::Left,
+                x: 10,
+                y: 20
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_mouse_event_release() {
+        // Left mouse button release at (15, 25): \x1B[<0;15;25m
+        let buf = b"\x1B[<0;15;25m";
+        let result = parse_mouse_event(buf, buf.len());
+
+        assert_eq!(
+            result,
+            Some(MouseEvent::Release {
+                button: MouseButton::Left,
+                x: 15,
+                y: 25
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_mouse_event_wheel() {
+        // Wheel up: \x1B[<64;5;5M
+        let buf = b"\x1B[<64;5;5M";
+        let result = parse_mouse_event(buf, buf.len());
+
+        assert_eq!(
+            result,
+            Some(MouseEvent::Press {
+                button: MouseButton::WheelUp,
+                x: 5,
+                y: 5
+            })
+        );
+
+        // Wheel down: \x1B[<65;5;5M
+        let buf = b"\x1B[<65;5;5M";
+        let result = parse_mouse_event(buf, buf.len());
+
+        assert_eq!(
+            result,
+            Some(MouseEvent::Press {
+                button: MouseButton::WheelDown,
+                x: 5,
+                y: 5
+            })
+        );
+    }
+
+    #[test]
+    fn test_parse_mouse_event_invalid() {
+        // Too short
+        let buf = b"\x1B[<0";
+        assert_eq!(parse_mouse_event(buf, buf.len()), None);
+
+        // Wrong prefix
+        let buf = b"\x1B[0;10;20M";
+        assert_eq!(parse_mouse_event(buf, buf.len()), None);
+
+        // Invalid end marker
+        let buf = b"\x1B[<0;10;20X";
+        assert_eq!(parse_mouse_event(buf, buf.len()), None);
+
+        // Invalid format
+        let buf = b"\x1B[<0;abc;20M";
+        assert_eq!(parse_mouse_event(buf, buf.len()), None);
+    }
+
+    #[test]
+    fn test_parse_escape_sequence_arrow_keys() {
+        // Arrow keys
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[A", 3),
+            InputEvent::Key(Key::ArrowUp)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[B", 3),
+            InputEvent::Key(Key::ArrowDown)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[C", 3),
+            InputEvent::Key(Key::ArrowRight)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[D", 3),
+            InputEvent::Key(Key::ArrowLeft)
+        );
+    }
+
+    #[test]
+    fn test_parse_escape_sequence_function_keys() {
+        // Function keys
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[10~", 5),
+            InputEvent::Key(Key::F0)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[11~", 5),
+            InputEvent::Key(Key::F1)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[1P", 4),
+            InputEvent::Key(Key::F1)
+        );
+    }
+
+    #[test]
+    fn test_parse_escape_sequence_navigation_keys() {
+        // Home key variants
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[H", 3),
+            InputEvent::Key(Key::Home)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[1~", 4),
+            InputEvent::Key(Key::Home)
+        );
+
+        // End key variants
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[F", 3),
+            InputEvent::Key(Key::End)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[4~", 4),
+            InputEvent::Key(Key::End)
+        );
+
+        // Other navigation keys
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[2~", 4),
+            InputEvent::Key(Key::Insert)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[3~", 4),
+            InputEvent::Key(Key::Delete)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[5~", 4),
+            InputEvent::Key(Key::PageUp)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[6~", 4),
+            InputEvent::Key(Key::PageDown)
+        );
+    }
+
+    #[test]
+    fn test_parse_escape_sequence_invalid() {
+        // Too short sequence should return Escape
+        assert_eq!(
+            parse_escape_sequence(b"\x1B", 1),
+            InputEvent::Key(Key::Escape)
+        );
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[", 2),
+            InputEvent::Key(Key::Escape)
+        );
+
+        // Unknown sequence should return Unknown
+        assert_eq!(
+            parse_escape_sequence(b"\x1B[999~", 6),
+            InputEvent::Key(Key::Unknown)
+        );
     }
 }

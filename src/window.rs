@@ -1,6 +1,6 @@
 use std::io;
 use std::os::unix::io::AsRawFd;
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::mpsc::{self, Receiver, Sender, SyncSender};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{self, Duration};
@@ -134,9 +134,7 @@ impl Window {
     fn check_window_size_changes(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(listener) = &self.window_size_listener {
             if let Ok((width, height)) = listener.try_recv() {
-                if width != self.width || height != self.height {
-                    self.resize(width, height)?;
-                }
+                self.resize(width, height)?;
             }
         }
         Ok(())
@@ -190,21 +188,29 @@ impl WindowSizeListener {
     /// Returns `WindowSizeListener` instance.
     pub fn new(rate: Duration) -> Self {
         #[allow(clippy::type_complexity)]
-        let (size_tx, size_rx): (Sender<(usize, usize)>, Receiver<(usize, usize)>) =
-            mpsc::channel();
+        let (size_tx, size_rx): (SyncSender<(usize, usize)>, Receiver<(usize, usize)>) =
+            mpsc::sync_channel(1);
         let (stop_tx, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
 
         let handle = thread::spawn(move || {
+            let mut prev_window_size: Option<(usize, usize)> = None; // Previous window size
             loop {
                 if stop_rx.try_recv().is_ok() {
                     break; // Stop the loop if a stop signal is received
                 }
 
                 if let Ok((width, height)) = Terminal::get_size() {
-                    if size_tx.send((width, height)).is_err() {
-                        break; // Stop the loop if the receiver is dropped
+                    // Check if the window size has changed
+                    if prev_window_size != Some((width, height)) {
+                        match size_tx.try_send((width, height)) {
+                            Ok(_) => {}
+                            Err(mpsc::TrySendError::Full(_)) => {} // If the channel is full, we can drop the event
+                            Err(mpsc::TrySendError::Disconnected(_)) => break, // Stop the loop if the receiver is dropped
+                        }
+                        prev_window_size = Some((width, height));
                     }
                 }
+
                 thread::sleep(rate);
             }
         });
@@ -241,8 +247,6 @@ impl WindowSizeListener {
 
 impl Drop for WindowSizeListener {
     fn drop(&mut self) {
-        if let Err(e) = self.stop() {
-            eprintln!("Error stopping window size listener: {e}");
-        }
+        let _ = self.stop();
     }
 }

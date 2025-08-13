@@ -22,7 +22,7 @@ impl Cell {
     pub fn new() -> Self {
         Self {
             ch: ' ',
-            attrs: Attr::NORMAL,
+            attrs: Attr::default(),
             fg: Color::default(),
             bg: Color::default(),
         }
@@ -169,6 +169,15 @@ impl Framebuffer {
         bg: Color,
     ) {
         self.set_border(attrs, fg, bg);
+
+        if title.chars().count() > self.width - 6 {
+            let mut truncated_title = title.chars().take(self.width - 9).collect::<String>();
+            truncated_title.push_str(" ...");
+            truncated_title.insert(0, ' ');
+            self.set_str(2, 0, &truncated_title, attrs, fg, bg, Align::Left);
+            return;
+        }
+
         let spaced_title = format!(" {title} ");
         match align {
             Align::Left => self.set_str(2, 0, &spaced_title, attrs, fg, bg, Align::Left),
@@ -361,11 +370,18 @@ mod tests {
     #[test]
     fn test_fb_clear() {
         let mut fb = Framebuffer::new(4, 2);
-        fb.set_char(0, 0, 'X', Attr::NORMAL, Color::default(), Color::default());
+        fb.set_char(
+            0,
+            0,
+            'X',
+            Attr::default(),
+            Color::default(),
+            Color::default(),
+        );
         fb.clear();
         for cell in fb.buffer {
             assert_eq!(cell.ch, ' ');
-            assert_eq!(cell.attrs, Attr::NORMAL);
+            assert_eq!(cell.attrs, Attr::default());
             assert_eq!(cell.bg, Color::default());
             assert_eq!(cell.fg, Color::default());
         }
@@ -374,9 +390,16 @@ mod tests {
     #[test]
     fn test_fb_set_char() {
         let mut fb = Framebuffer::new(4, 2);
-        fb.set_char(0, 0, 'X', Attr::NORMAL, Color::default(), Color::default());
+        fb.set_char(
+            0,
+            0,
+            'X',
+            Attr::default(),
+            Color::default(),
+            Color::default(),
+        );
         assert_eq!(fb.buffer[0].ch, 'X');
-        assert_eq!(fb.buffer[0].attrs, Attr::NORMAL);
+        assert_eq!(fb.buffer[0].attrs, Attr::default());
         assert_eq!(fb.buffer[0].bg, Color::default());
         assert_eq!(fb.buffer[0].fg, Color::default());
     }
@@ -388,7 +411,7 @@ mod tests {
             0,
             0,
             "XY",
-            Attr::NORMAL,
+            Attr::default(),
             Color::default(),
             Color::default(),
             Align::Left,
@@ -400,7 +423,7 @@ mod tests {
     #[test]
     fn test_fb_set_border() {
         let mut fb = Framebuffer::new(4, 3);
-        fb.set_border(Attr::NORMAL, Color::White, Color::default());
+        fb.set_border(Attr::default(), Color::White, Color::default());
         assert_eq!(fb.buffer[0].ch, '╭');
         assert_eq!(fb.buffer[1].ch, '─');
         assert_eq!(fb.buffer[2].ch, '─');
@@ -416,9 +439,12 @@ mod tests {
     }
 
     #[test]
+    fn test_fb_set_named_border() {}
+
+    #[test]
     fn test_fb_set_vline() {
         let mut fb = Framebuffer::new(4, 3);
-        fb.set_vline(1, 0, 3, Attr::NORMAL, Color::default(), Color::default());
+        fb.set_vline(1, 0, 3, Attr::default(), Color::default(), Color::default());
         assert_eq!(fb.buffer[1].ch, '│');
         assert_eq!(fb.buffer[5].ch, '│');
         assert_eq!(fb.buffer[9].ch, '│');
@@ -427,7 +453,7 @@ mod tests {
     #[test]
     fn test_fb_set_hline() {
         let mut fb = Framebuffer::new(4, 3);
-        fb.set_hline(1, 0, 4, Attr::NORMAL, Color::default(), Color::default());
+        fb.set_hline(1, 0, 4, Attr::default(), Color::default(), Color::default());
         assert_eq!(fb.buffer[4].ch, '─');
         assert_eq!(fb.buffer[5].ch, '─');
         assert_eq!(fb.buffer[6].ch, '─');
@@ -435,9 +461,27 @@ mod tests {
     }
 
     #[test]
+    fn test_fb_set_fg_color() {
+        let mut fb = Framebuffer::new(4, 2);
+        fb.set_fg_color(Color::Red);
+        for cell in &fb.buffer {
+            assert_eq!(cell.fg, Color::Red);
+        }
+    }
+
+    #[test]
+    fn test_fb_set_bg_color() {
+        let mut fb = Framebuffer::new(4, 2);
+        fb.set_bg_color(Color::Blue);
+        for cell in &fb.buffer {
+            assert_eq!(cell.bg, Color::Blue);
+        }
+    }
+
+    #[test]
     fn test_fb_combine() {
         let mut fb1 = Framebuffer::new(3, 3);
-        fb1.set_border(Attr::NORMAL, Color::default(), Color::default());
+        fb1.set_border(Attr::default(), Color::default(), Color::default());
         let mut fb2 = Framebuffer::new(1, 1);
         fb2.set_str(
             0,
