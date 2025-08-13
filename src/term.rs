@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use nix::libc;
 use nix::sys::termios::{self, LocalFlags, SetArg, Termios};
-use std::os::unix::io::BorrowedFd;
+use std::os::unix::io::{BorrowedFd, RawFd};
 use std::{
     io::{self, Write},
     os::fd::AsRawFd,
@@ -164,19 +164,35 @@ pub enum Cmd {
 /// Represents a terminal.
 pub struct Terminal {
     /// The file descriptor for the terminal.
-    fd: i32,
+    fd: RawFd,
     /// The original terminal settings.
-    original: Termios,
+    original: Option<Termios>,
 }
 
 impl Terminal {
+    /// Create a new terminal instance.
+    ///
+    /// Returns a new `Terminal` instance.
+    pub fn new() -> Self {
+        let fd: RawFd = std::io::stdout().as_raw_fd();
+        Terminal { fd, original: None }
+    }
+
+    /// Get a borrowed file descriptor with error handling.
+    ///
+    /// Returns a `BorrowedFd` for the terminal file descriptor.
+    fn get_borrowed_fd(&self) -> nix::Result<BorrowedFd<'_>> {
+        if self.fd < 0 {
+            return Err(nix::Error::EBADF);
+        }
+        Ok(unsafe { BorrowedFd::borrow_raw(self.fd) })
+    }
+
     /// Enable raw mode
     ///
-    /// * `fd` - The file descriptor for the terminal.
-    ///
     /// Returns a `Terminal` instance with raw mode enabled.
-    pub fn enable_raw_mode(fd: i32) -> nix::Result<Self> {
-        let borrowed_fd = unsafe { BorrowedFd::borrow_raw(fd) };
+    pub fn enable_raw_mode(&mut self) -> nix::Result<()> {
+        let borrowed_fd = self.get_borrowed_fd()?;
         let original = termios::tcgetattr(borrowed_fd)?;
         let mut raw = original.clone();
 
@@ -184,7 +200,20 @@ impl Terminal {
             .remove(LocalFlags::ICANON | LocalFlags::ECHO);
         termios::tcsetattr(borrowed_fd, SetArg::TCSANOW, &raw)?;
 
-        Ok(Terminal { fd, original })
+        self.original = Some(original);
+        Ok(())
+    }
+
+    /// Disable raw mode
+    ///
+    /// Returns `Ok(())` if successful, or an error if it fails.
+    pub fn disable_raw_mode(&mut self) -> nix::Result<()> {
+        if let Some(original) = &self.original {
+            let borrowed_fd = self.get_borrowed_fd()?;
+            termios::tcsetattr(borrowed_fd, SetArg::TCSANOW, original)?;
+            self.original = None;
+        }
+        Ok(())
     }
 
     /// Set the terminal to non-blocking mode
@@ -228,8 +257,7 @@ impl Terminal {
     }
 
     /// Get the terminal size
-    pub fn get_size() -> io::Result<(usize, usize)> {
-        let fd = std::io::stdout().as_raw_fd();
+    pub fn get_size(&self) -> io::Result<(usize, usize)> {
         let mut ws = libc::winsize {
             ws_row: 0,
             ws_col: 0,
@@ -238,7 +266,7 @@ impl Terminal {
         };
 
         unsafe {
-            if libc::ioctl(fd, libc::TIOCGWINSZ, &mut ws) == 0 {
+            if libc::ioctl(self.fd, libc::TIOCGWINSZ, &mut ws) == 0 {
                 Ok((ws.ws_col as usize, ws.ws_row as usize))
             } else {
                 Err(io::Error::last_os_error())
@@ -249,8 +277,7 @@ impl Terminal {
 
 impl Drop for Terminal {
     fn drop(&mut self) {
-        let borrowed_fd = unsafe { BorrowedFd::borrow_raw(self.fd) };
-        let _ = termios::tcsetattr(borrowed_fd, SetArg::TCSANOW, &self.original);
+        let _ = self.disable_raw_mode();
     }
 }
 

@@ -1,5 +1,4 @@
 use std::io;
-use std::os::unix::io::AsRawFd;
 use std::sync::mpsc::{self, Receiver, Sender, SyncSender};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -32,7 +31,8 @@ impl Window {
     ///
     /// Returns a `Window` instance if successful, or an error if it failed.
     pub fn new(show_fps: bool) -> Result<Self, Box<dyn std::error::Error>> {
-        let (width, height) = Terminal::get_size()?;
+        let terminal = Terminal::new();
+        let (width, height) = terminal.get_size()?;
         let front_fb = Arc::new(Mutex::new(Framebuffer::new(width, height)));
         let back_fb = Arc::new(Mutex::new(Framebuffer::new(width, height)));
         Ok(Self {
@@ -40,7 +40,7 @@ impl Window {
             height,
             front_fb,
             back_fb,
-            terminal: None,
+            terminal: Some(terminal),
             render_thread: None,
             window_size_listener: None,
             actual_fps: 0.0,
@@ -58,22 +58,26 @@ impl Window {
         &mut self,
         rendering_rate: time::Duration,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let fd = io::stdin().as_raw_fd();
-        let terminal = Terminal::enable_raw_mode(fd)?;
-        terminal.set_nonblocking()?;
+        if let Some(terminal) = &mut self.terminal {
+            terminal.enable_raw_mode()?;
+            terminal.set_nonblocking()?;
+            self.window_size_listener = Some(WindowSizeListener::new(
+                self.terminal.take().unwrap(),
+                WINDOW_SIZE_CHANGE_DETECTION_RATE,
+            ));
+        }
+
         Terminal::exec(Cmd::EnableAlternativeScreen)?;
         Terminal::exec(Cmd::HideCursor)?;
         Terminal::exec(Cmd::EnableMouseReporting)?;
         Terminal::exec(Cmd::EnableSgrCoords)?;
-        self.terminal = Some(terminal);
+
         self.rendering_rate = rendering_rate;
         self.render_thread = Some(RenderThread::new(
             Arc::clone(&self.front_fb),
             Arc::clone(&self.back_fb),
             rendering_rate,
         ));
-        self.window_size_listener =
-            Some(WindowSizeListener::new(WINDOW_SIZE_CHANGE_DETECTION_RATE));
         Ok(())
     }
 
@@ -164,9 +168,7 @@ impl Window {
 
 impl Drop for Window {
     fn drop(&mut self) {
-        if let Err(e) = self.end() {
-            eprintln!("Error restoring terminal state: {e}");
-        }
+        let _ = self.end();
     }
 }
 
@@ -186,7 +188,7 @@ impl WindowSizeListener {
     /// * `rate`: The rate at which to check for window size changes
     ///
     /// Returns `WindowSizeListener` instance.
-    pub fn new(rate: Duration) -> Self {
+    pub fn new(terminal: Terminal, rate: Duration) -> Self {
         #[allow(clippy::type_complexity)]
         let (size_tx, size_rx): (SyncSender<(usize, usize)>, Receiver<(usize, usize)>) =
             mpsc::sync_channel(1);
@@ -199,7 +201,7 @@ impl WindowSizeListener {
                     break; // Stop the loop if a stop signal is received
                 }
 
-                if let Ok((width, height)) = Terminal::get_size() {
+                if let Ok((width, height)) = terminal.get_size() {
                     // Check if the window size has changed
                     if prev_window_size != Some((width, height)) {
                         match size_tx.try_send((width, height)) {
