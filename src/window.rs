@@ -189,6 +189,7 @@ impl WindowSizeListener {
     ///
     /// Returns `WindowSizeListener` instance.
     pub fn new(rate: Duration) -> Self {
+        #[allow(clippy::type_complexity)]
         let (size_tx, size_rx): (Sender<(usize, usize)>, Receiver<(usize, usize)>) =
             mpsc::channel();
         let (stop_tx, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();

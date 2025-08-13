@@ -1,5 +1,5 @@
-use std::io::{self, Read};
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::io::{self, Read, StdinLock};
+use std::sync::mpsc::{self, Receiver, Sender, SyncSender};
 use std::thread;
 use std::time::Duration;
 
@@ -104,24 +104,41 @@ fn parse_mouse_event(buf: &[u8], n: usize) -> Option<MouseEvent> {
         return None;
     }
 
-    let data = std::str::from_utf8(&buf[3..n]).ok()?;
-    let is_press = data.ends_with('M');
-    let is_release = data.ends_with('m');
+    let end_marker = buf[n - 1];
+    let is_press = end_marker == b'M';
+    let is_release = end_marker == b'm';
 
     if !is_press && !is_release {
         return None;
     }
 
-    let coords = &data[..data.len() - 1]; // Remove M or m
-    let parts: Vec<&str> = coords.split(';').collect();
+    let mut values = [0u16; 3];
+    let mut value_idx = 0;
+    let mut current_value = 0u16;
 
-    if parts.len() != 3 {
-        return None;
+    for &byte in &buf[3..n - 1] {
+        if byte == b';' {
+            if value_idx >= 3 {
+                return None;
+            }
+            values[value_idx] = current_value;
+            value_idx += 1;
+            current_value = 0;
+        } else if byte.is_ascii_digit() {
+            current_value = current_value * 10 + (byte - b'0') as u16;
+        } else {
+            return None;
+        }
     }
 
-    let button_code: u8 = parts[0].parse().ok()?;
-    let x: u16 = parts[1].parse().ok()?;
-    let y: u16 = parts[2].parse().ok()?;
+    if value_idx != 2 {
+        return None;
+    }
+    values[2] = current_value;
+
+    let button_code = values[0] as u8;
+    let x = values[1];
+    let y = values[2];
 
     let button = match button_code & 0x03 {
         0 => MouseButton::Left,
@@ -153,7 +170,10 @@ fn parse_mouse_event(buf: &[u8], n: usize) -> Option<MouseEvent> {
 
 /// Parse the escape sequence and return the corresponding Key or Mouse event.
 ///
-/// Returns `InputEvent::Key(Key::Escape)` if the sequence is invalid.
+/// * `buf` - The buffer containing the escape sequence.
+/// * `n` - The length of the buffer.
+///
+/// Returns `InputEvent` corresponding to the escape sequence.
 fn parse_escape_sequence(buf: &[u8], n: usize) -> InputEvent {
     if n < 3 {
         return InputEvent::Key(Key::Escape);
@@ -205,16 +225,16 @@ fn parse_escape_sequence(buf: &[u8], n: usize) -> InputEvent {
 
 /// Read input (key or mouse) from standard input.
 ///
+/// * `stdin` - The standard input stream.
+/// * `buf` - The buffer to read the input into.
+///
 /// Returns `Some(InputEvent)` if an event is detected, `None` otherwise.
-fn read_key() -> io::Result<Option<InputEvent>> {
-    let mut stdin = io::stdin().lock();
-    let mut buf = [0u8; 32];
-
-    match stdin.read(&mut buf) {
+fn read_key(stdin: &mut StdinLock, buf: &mut [u8]) -> io::Result<Option<InputEvent>> {
+    match stdin.read(buf) {
         Ok(0) => Ok(None),
         Ok(n) => {
             let event = match buf[0] {
-                0x1B => parse_escape_sequence(&buf, n),
+                0x1B => parse_escape_sequence(buf, n),
                 c if c.is_ascii() => InputEvent::Key(Key::Char(c as char)),
                 _ => InputEvent::Key(Key::Unknown),
             };
@@ -242,18 +262,22 @@ impl InputListener {
     ///
     /// Returns `InputListener` instance.
     pub fn new(rate: Duration) -> Self {
-        let (input_tx, input_rx): (Sender<InputEvent>, Receiver<InputEvent>) = mpsc::channel();
+        let (input_tx, input_rx): (SyncSender<InputEvent>, Receiver<InputEvent>) =
+            mpsc::sync_channel(256);
         let (stop_tx, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
 
         let handle = thread::spawn(move || {
+            let mut stdin = io::stdin().lock();
+            let mut buf = [0u8; 128];
+
             loop {
                 if stop_rx.try_recv().is_ok() {
                     break; // Stop the loop if a stop signal is received
                 }
 
-                match read_key() {
+                match read_key(&mut stdin, &mut buf) {
                     Ok(Some(event)) => {
-                        if input_tx.send(event).is_err() {
+                        if input_tx.try_send(event).is_err() {
                             break; // Stop the loop if the receiver is dropped
                         }
                     }

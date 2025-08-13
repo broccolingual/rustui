@@ -68,21 +68,9 @@ impl Framebuffer {
         }
     }
 
-    /// Check whether x and y fit within the frame buffer size.
-    ///
-    /// * `x`: The x-coordinate to check.
-    /// * `y`: The y-coordinate to check.
-    ///
-    /// Returns `true` if the coordinates are within the buffer size, `false` otherwise.
-    pub fn check_range(&self, x: usize, y: usize) -> bool {
-        x < self.width && y < self.height
-    }
-
     /// Initialize the buffer.
     pub fn clear(&mut self) {
-        for cell in &mut self.buffer {
-            *cell = Cell::default();
-        }
+        self.buffer.fill(Cell::default());
     }
 
     /// Write a character and its attributes to the buffer.
@@ -94,7 +82,7 @@ impl Framebuffer {
     /// * `fg`: The foreground color of the cell.
     /// * `bg`: The background color of the cell.
     pub fn set_char(&mut self, x: usize, y: usize, ch: char, attrs: Attr, fg: Color, bg: Color) {
-        if self.check_range(x, y) {
+        if x < self.width && y < self.height {
             let idx = y * self.width + x;
             self.buffer[idx].ch = ch;
             self.buffer[idx].attrs = attrs;
@@ -112,6 +100,7 @@ impl Framebuffer {
     /// * `fg`: The foreground color of the cell.
     /// * `bg`: The background color of the cell.
     /// * `align`: The alignment of the text.
+    #[allow(clippy::too_many_arguments)]
     pub fn set_str(
         &mut self,
         x: usize,
@@ -122,13 +111,17 @@ impl Framebuffer {
         bg: Color,
         align: Align,
     ) {
+        let str_len = str.chars().count();
         let start_x = match align {
             Align::Left => x,
-            Align::Center => x.saturating_sub(str.len() / 2),
-            Align::Right => x.saturating_sub(str.len()),
+            Align::Center => x.saturating_sub(str_len / 2),
+            Align::Right => x.saturating_sub(str_len),
         };
         for (i, ch) in str.chars().enumerate() {
-            self.set_char(start_x + i, y, ch, attrs, fg, bg);
+            let px = start_x + i;
+            if px < self.width {
+                self.set_char(px, y, ch, attrs, fg, bg);
+            }
         }
     }
 
@@ -252,7 +245,7 @@ impl Framebuffer {
     pub fn combine(&mut self, other: &Framebuffer, x_offset: usize, y_offset: usize) {
         for y in 0..other.height {
             for x in 0..other.width {
-                if self.check_range(x + x_offset, y + y_offset) {
+                if x + x_offset < self.width && y + y_offset < self.height {
                     let idx = (y + y_offset) * self.width + (x + x_offset);
                     self.buffer[idx] = other.buffer[y * other.width + x].clone();
                 }
@@ -264,18 +257,14 @@ impl Framebuffer {
     ///
     /// * `color`: The color to set.
     pub fn set_fg_color(&mut self, color: Color) {
-        for i in 0..self.height * self.width {
-            self.buffer[i].fg = color;
-        }
+        self.buffer.iter_mut().for_each(|cell| cell.fg = color);
     }
 
     /// Set the background color for all cells in the buffer.
     ///
     /// * `color`: The color to set.
     pub fn set_bg_color(&mut self, color: Color) {
-        for i in 0..self.height * self.width {
-            self.buffer[i].bg = color;
-        }
+        self.buffer.iter_mut().for_each(|cell| cell.bg = color);
     }
 
     /// Compare the back buffer and front buffer, draw the differences, and update the front buffer with the contents of the back buffer.
@@ -313,29 +302,36 @@ impl Framebuffer {
             }
         }
 
+        const CHUNK_SIZE: usize = 4096;
+        let mut chunk = String::with_capacity(CHUNK_SIZE);
+
         // Draw the output for each changed cell
         for (x, y, idx, back) in changes {
-            let mut cell_output = String::new();
-
-            cell_output.push_str(&format!("\x1B[{};{}H", y + 1, x + 1)); // Move to the target coordinates
+            chunk.push_str(&format!("\x1B[{};{}H", y + 1, x + 1)); // Move to the target coordinates
             if prev_attrs != back.attrs {
                 prev_attrs = back.attrs;
-                cell_output.push_str(&back.attrs.to_ansi());
+                chunk.push_str(&back.attrs.to_ansi());
             }
             if prev_fg != back.fg {
                 prev_fg = back.fg;
-                cell_output.push_str(&back.fg.to_ansi(true));
+                chunk.push_str(&back.fg.to_ansi(true));
             }
             if prev_bg != back.bg {
                 prev_bg = back.bg;
-                cell_output.push_str(&back.bg.to_ansi(false));
+                chunk.push_str(&back.bg.to_ansi(false));
             }
-            cell_output.push(back.ch); // Add the character
-
-            stdout_lock.write_all(cell_output.as_bytes())?;
-            stdout_lock.flush()?; // Flush to reflect the output
-
+            chunk.push(back.ch); // Add the character
             self.buffer[idx] = back.clone(); // Copy the Cell to the front buffer
+
+            if chunk.len() >= CHUNK_SIZE {
+                stdout_lock.write_all(chunk.as_bytes())?;
+                stdout_lock.flush()?;
+                chunk.clear();
+            }
+        }
+        if !chunk.is_empty() {
+            stdout_lock.write_all(chunk.as_bytes())?;
+            stdout_lock.flush()?;
         }
         Ok(())
     }
@@ -360,15 +356,6 @@ mod tests {
         assert_eq!(fb.width, 4);
         assert_eq!(fb.height, 2);
         assert_eq!(fb.buffer.len(), 8);
-    }
-
-    #[test]
-    fn test_fb_check_range() {
-        let fb = Framebuffer::new(4, 2);
-        assert!(fb.check_range(0, 0));
-        assert!(fb.check_range(3, 1));
-        assert!(!fb.check_range(4, 0));
-        assert!(!fb.check_range(0, 2));
     }
 
     #[test]

@@ -48,7 +48,7 @@ impl Attr {
             return csi!("0m");
         }
 
-        let ansi_codes = [
+        let attr_mappings = [
             (Attr::NORMAL, "0"),
             (Attr::BOLD, "1"),
             (Attr::THIN, "2"),
@@ -60,19 +60,29 @@ impl Attr {
             (Attr::HIDDEN, "8"),
             (Attr::REMOVE, "9"),
             (Attr::PRIMARY, "10"),
-        ]
-        .iter()
-        .filter(|(attr, _)| self.contains(*attr))
-        .map(|(_, code)| *code)
-        .collect::<Vec<_>>()
-        .join(";");
+        ];
 
-        csi!(&format!("{ansi_codes}m"))
+        let mut buf = String::with_capacity(24);
+        buf.push_str("\x1B[");
+
+        let mut first = true;
+        for (flag, code) in attr_mappings.iter() {
+            if self.contains(*flag) {
+                if !first {
+                    buf.push(';');
+                }
+                buf.push_str(code);
+                first = false;
+            }
+        }
+
+        buf.push('m');
+        buf
     }
 }
 
 /// Represents a color in the terminal.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Color {
     Black,
     Red,
@@ -84,13 +94,8 @@ pub enum Color {
     White,
     RGB(u8, u8, u8),
     HSV(u8, u8, u8),
+    #[default]
     None,
-}
-
-impl Default for Color {
-    fn default() -> Self {
-        Color::None
-    }
 }
 
 impl Color {
@@ -98,72 +103,46 @@ impl Color {
     ///
     /// Returns an ANSI escape code string for the color.
     pub fn to_ansi(&self, fg: bool) -> String {
+        use std::fmt::Write;
+        let mut buf = String::with_capacity(20);
+        buf.push_str("\x1B[");
+
         match self {
-            Color::Black => csi!(if fg { "30m" } else { "40m" }),
-            Color::Red => csi!(if fg { "31m" } else { "41m" }),
-            Color::Green => csi!(if fg { "32m" } else { "42m" }),
-            Color::Yellow => csi!(if fg { "33m" } else { "43m" }),
-            Color::Blue => csi!(if fg { "34m" } else { "44m" }),
-            Color::Magenta => csi!(if fg { "35m" } else { "45m" }),
-            Color::Cyan => csi!(if fg { "36m" } else { "46m" }),
-            Color::White => csi!(if fg { "37m" } else { "47m" }),
+            Color::Black => buf.push_str(if fg { "30m" } else { "40m" }),
+            Color::Red => buf.push_str(if fg { "31m" } else { "41m" }),
+            Color::Green => buf.push_str(if fg { "32m" } else { "42m" }),
+            Color::Yellow => buf.push_str(if fg { "33m" } else { "43m" }),
+            Color::Blue => buf.push_str(if fg { "34m" } else { "44m" }),
+            Color::Magenta => buf.push_str(if fg { "35m" } else { "45m" }),
+            Color::Cyan => buf.push_str(if fg { "36m" } else { "46m" }),
+            Color::White => buf.push_str(if fg { "37m" } else { "47m" }),
             Color::RGB(r, g, b) => {
-                if fg {
-                    let s = format!("38;2;{};{};{}m", r, g, b);
-                    csi!(&s)
-                } else {
-                    let s = format!("48;2;{};{};{}m", r, g, b);
-                    csi!(&s)
-                }
+                let _ = write!(buf, "{};2;{};{};{}m", if fg { "38" } else { "48" }, r, g, b);
             }
             Color::HSV(h, s, v) => {
-                let norm_h = (*h as f32 / 255.0) * 360.0;
-                let norm_s = *s as f32 / 255.0;
-                let norm_v = *v as f32 / 255.0;
-                let c = norm_v * norm_s;
-                let x = c * (1.0 - ((norm_h / 60.0) % 2.0 - 1.0).abs());
-                let m = norm_v - c;
-                let mut r;
-                let mut g;
-                let mut b;
-                if norm_h < 60.0 {
-                    r = c;
-                    g = x;
-                    b = 0.0;
-                } else if norm_h < 120.0 {
-                    r = x;
-                    g = c;
-                    b = 0.0;
-                } else if norm_h < 180.0 {
-                    r = 0.0;
-                    g = c;
-                    b = x;
-                } else if norm_h < 240.0 {
-                    r = 0.0;
-                    g = x;
-                    b = c;
-                } else if norm_h < 300.0 {
-                    r = x;
-                    g = 0.0;
-                    b = c;
-                } else {
-                    r = c;
-                    g = 0.0;
-                    b = x;
-                }
-                r = (r + m) * 255.0;
-                g = (g + m) * 255.0;
-                b = (b + m) * 255.0;
-                if fg {
-                    let s = format!("38;2;{};{};{}m", r as u8, g as u8, b as u8);
-                    csi!(&s)
-                } else {
-                    let s = format!("48;2;{};{};{}m", r as u8, g as u8, b as u8);
-                    csi!(&s)
-                }
+                let h = *h as u32 * 360 / 255;
+                let s = *s as u32;
+                let v = *v as u32;
+                let c = v * s / 255;
+                let h_mod = (h % 120) as i32 - 60;
+                let x = c * (60 - h_mod.unsigned_abs()) / 60;
+                let m = v - c;
+                let (r, g, b) = match h {
+                    0..=59 => (c, x, 0),
+                    60..=119 => (x, c, 0),
+                    120..=179 => (0, c, x),
+                    180..=239 => (0, x, c),
+                    240..=299 => (x, 0, c),
+                    _ => (c, 0, x),
+                };
+                let r = (r + m).min(255);
+                let g = (g + m).min(255);
+                let b = (b + m).min(255);
+                let _ = write!(buf, "{};2;{};{};{}m", if fg { "38" } else { "48" }, r, g, b);
             }
-            Color::None => csi!(if fg { "39m" } else { "49m" }),
+            Color::None => buf.push_str(if fg { "39m" } else { "49m" }),
         }
+        buf
     }
 }
 
