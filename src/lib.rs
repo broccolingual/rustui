@@ -19,6 +19,8 @@ The library is organized into several core modules:
 - [`window`] - High-level windowing abstraction with thread management
 - [`input`] - Non-blocking keyboard and mouse input handling
 - [`term`] - Terminal colors, attributes, and ANSI escape sequences
+- [`attr`] - Text attributes and styling
+- [`color`] - Color manipulation and conversion utilities
 - [`render`] - Rendering utilities and drawing primitives
 
 ## Performance
@@ -29,6 +31,12 @@ rustui is optimized for performance with:
 
 */
 
+/// A module for handling text attributes.
+#[cfg(target_os = "linux")]
+pub mod attr;
+/// A module for handling colors.
+#[cfg(target_os = "linux")]
+pub mod color;
 /// A module for handling the framebuffer.
 #[cfg(target_os = "linux")]
 pub mod framebuffer;
@@ -45,6 +53,10 @@ pub mod term;
 #[cfg(target_os = "linux")]
 pub mod window;
 
+mod macros;
+
+pub use attr::*;
+pub use color::*;
 pub use framebuffer::*;
 pub use input::*;
 pub use render::*;
