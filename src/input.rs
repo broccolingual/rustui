@@ -525,7 +525,7 @@ mod tests {
             InputEvent::Key(Key::F1)
         );
         assert_eq!(
-            parse_escape_sequence(b"\x1B[1P", 4),
+            parse_escape_sequence(b"\x1BOP", 4),
             InputEvent::Key(Key::F1)
         );
     }
