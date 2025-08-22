@@ -217,10 +217,10 @@ fn parse_escape_sequence(buf: &[u8], n: usize) -> InputEvent {
                     [b'5', b'~', ..] => Key::PageUp,
                     [b'6', b'~', ..] => Key::PageDown,
                     [b'4', b'~', ..] | [b'7', b'~', ..] | [b'F', ..] => Key::End,
-                    [b'1', b'0', b'~', ..] => Key::F0,
-                    [b'1', b'1', b'~', ..] => Key::F1,
-                    [b'1', b'2', b'~', ..] => Key::F2,
-                    [b'1', b'3', b'~', ..] => Key::F3,
+                    [b'1', b'0', b'~', ..] | [b'1', b'P', ..] => Key::F0,
+                    [b'1', b'1', b'~', ..] | [b'1', b'Q', ..] => Key::F1,
+                    [b'1', b'2', b'~', ..] | [b'1', b'R', ..] => Key::F2,
+                    [b'1', b'3', b'~', ..] | [b'1', b'S', ..] => Key::F3,
                     [b'1', b'4', b'~', ..] => Key::F4,
                     [b'1', b'5', b'~', ..] => Key::F5,
                     [b'1', b'7', b'~', ..] => Key::F6,
@@ -259,7 +259,7 @@ fn read_key(stdin: &mut StdinLock, buf: &mut [u8]) -> io::Result<Option<InputEve
         Ok(0) => Ok(None),
         Ok(n) => {
             let event = match buf[0] {
-                0x01..=0x1A => {
+                0x01..=0x1a => {
                     let c = ((buf[0] - 0x01) + b'a') as char;
                     if c == 'm' {
                         InputEvent::Key(Key::Enter) // Ctrl + M
@@ -267,7 +267,11 @@ fn read_key(stdin: &mut StdinLock, buf: &mut [u8]) -> io::Result<Option<InputEve
                         InputEvent::Key(Key::Ctrl(c))
                     }
                 }
-                0x1B => parse_escape_sequence(buf, n),
+                0x1b => parse_escape_sequence(buf, n),
+                0x1c => InputEvent::Key(Key::Ctrl('\\')),
+                0x1d => InputEvent::Key(Key::Ctrl(']')),
+                0x1e => InputEvent::Key(Key::Ctrl('^')),
+                0x1f => InputEvent::Key(Key::Ctrl('_')),
                 0x20..=0x7e => InputEvent::Key(Key::Char(buf[0] as char)),
                 _ => InputEvent::Key(Key::Unknown),
             };
