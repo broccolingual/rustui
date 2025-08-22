@@ -1,6 +1,6 @@
 use crate::csi;
 use nix::libc;
-use nix::sys::termios::{self, LocalFlags, SetArg, Termios};
+use nix::sys::termios::{self, ControlFlags, InputFlags, LocalFlags, OutputFlags, SetArg, Termios};
 use std::os::unix::io::{BorrowedFd, RawFd};
 use std::{
     io::{self, Write},
@@ -57,8 +57,30 @@ impl Terminal {
         let original = termios::tcgetattr(borrowed_fd)?;
         let mut raw = original.clone();
 
-        raw.local_flags
-            .remove(LocalFlags::ICANON | LocalFlags::ECHO);
+        raw.input_flags.remove(
+            InputFlags::BRKINT
+                | InputFlags::ICRNL
+                | InputFlags::INPCK
+                | InputFlags::ISTRIP
+                | InputFlags::IXON,
+        );
+
+        raw.output_flags.remove(OutputFlags::OPOST); // disable output processing
+
+        raw.control_flags
+            .remove(ControlFlags::CSIZE | ControlFlags::PARENB);
+        raw.control_flags.insert(ControlFlags::CS8);
+
+        raw.local_flags.remove(
+            LocalFlags::ICANON
+                | LocalFlags::ECHONL
+                | LocalFlags::ECHO
+                | LocalFlags::ISIG
+                | LocalFlags::IEXTEN,
+        );
+        raw.control_chars[libc::VMIN as usize] = 1; // Minimum number of characters to read
+        raw.control_chars[libc::VTIME as usize] = 0; // No timeout
+
         termios::tcsetattr(borrowed_fd, SetArg::TCSANOW, &raw)?;
 
         self.original = Some(original);
