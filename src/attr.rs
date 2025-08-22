@@ -89,4 +89,3 @@ mod tests {
         assert_eq!(attr.to_ansi(), "\x1B[0;1;2;3;4;5;6;7;8;9;10m");
     }
 }
-

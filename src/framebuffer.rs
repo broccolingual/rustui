@@ -2,6 +2,8 @@ use std::io::{self, Write};
 
 use crate::{Attr, Color};
 
+const CHUNK_SIZE: usize = 1024;
+
 /// Represents a single cell in the framebuffer.
 #[derive(Clone, PartialEq, Debug)]
 struct Cell {
@@ -311,7 +313,6 @@ impl Framebuffer {
             }
         }
 
-        const CHUNK_SIZE: usize = 4096;
         let mut chunk = String::with_capacity(CHUNK_SIZE);
 
         // Draw the output for each changed cell

@@ -18,6 +18,8 @@ pub enum Key {
     PageDown,
     Char(char),
     Escape,
+    Ctrl(char),
+    Enter, // Ctrl + M
     F0,
     F1,
     F2,
@@ -65,6 +67,7 @@ pub enum MouseEvent {
 pub enum InputEvent {
     Key(Key),
     Mouse(MouseEvent),
+    Unknown,
 }
 
 impl Key {
@@ -179,48 +182,70 @@ fn parse_escape_sequence(buf: &[u8], n: usize) -> InputEvent {
         return InputEvent::Key(Key::Escape);
     }
 
-    // Check for mouse event (SGR format)
-    if n >= 6 && buf[2] == b'<' {
-        if let Some(mouse_event) = parse_mouse_event(buf, n) {
-            return InputEvent::Mouse(mouse_event);
+    // We can check this using `showkey -a` command
+    let e = match &buf[1] {
+        // Check SS3 sequence
+        b'O' => {
+            let key = match buf[2] {
+                b'P' => Key::F1,
+                b'Q' => Key::F2,
+                b'R' => Key::F3,
+                b'S' => Key::F4,
+                _ => Key::Unknown,
+            };
+            InputEvent::Key(key)
         }
-    }
-
-    let key = match &buf[1..] {
-        [b'[', b'A', ..] => Key::ArrowUp,
-        [b'[', b'B', ..] => Key::ArrowDown,
-        [b'[', b'C', ..] => Key::ArrowRight,
-        [b'[', b'D', ..] => Key::ArrowLeft,
-        [b'[', b'1', b'~', ..] | [b'[', b'H', ..] => Key::Home,
-        [b'[', b'2', b'~', ..] => Key::Insert,
-        [b'[', b'3', b'~', ..] => Key::Delete,
-        [b'[', b'5', b'~', ..] => Key::PageUp,
-        [b'[', b'6', b'~', ..] => Key::PageDown,
-        [b'[', b'4', b'~', ..] | [b'[', b'7', b'~', ..] | [b'[', b'F', ..] => Key::End,
-        [b'[', b'1', b'0', b'~', ..] => Key::F0,
-        [b'[', b'1', b'1', b'~', ..] | [b'[', b'1', b'P', ..] => Key::F1,
-        [b'[', b'1', b'2', b'~', ..] | [b'[', b'1', b'Q', ..] => Key::F2,
-        [b'[', b'1', b'3', b'~', ..] | [b'[', b'1', b'R', ..] => Key::F3,
-        [b'[', b'1', b'4', b'~', ..] | [b'[', b'1', b'S', ..] => Key::F4,
-        [b'[', b'1', b'5', b'~', ..] => Key::F5,
-        [b'[', b'1', b'7', b'~', ..] => Key::F6,
-        [b'[', b'1', b'8', b'~', ..] => Key::F7,
-        [b'[', b'1', b'9', b'~', ..] => Key::F8,
-        [b'[', b'2', b'0', b'~', ..] => Key::F9,
-        [b'[', b'2', b'1', b'~', ..] => Key::F10,
-        [b'[', b'2', b'3', b'~', ..] => Key::F11,
-        [b'[', b'2', b'4', b'~', ..] => Key::F12,
-        [b'[', b'2', b'5', b'~', ..] => Key::F13,
-        [b'[', b'2', b'6', b'~', ..] => Key::F14,
-        [b'[', b'2', b'8', b'~', ..] => Key::F15,
-        [b'[', b'2', b'9', b'~', ..] => Key::F16,
-        [b'[', b'3', b'1', b'~', ..] => Key::F17,
-        [b'[', b'3', b'2', b'~', ..] => Key::F18,
-        [b'[', b'3', b'3', b'~', ..] => Key::F19,
-        [b'[', b'3', b'4', b'~', ..] => Key::F20,
-        _ => Key::Unknown,
+        // Check CSI sequence
+        b'[' => {
+            if buf[2] == b'<' {
+                // Check for mouse event (SGR format)
+                if let Some(mouse_event) = parse_mouse_event(buf, n) {
+                    InputEvent::Mouse(mouse_event)
+                } else {
+                    InputEvent::Unknown
+                }
+            } else {
+                // Check special keys
+                let key = match &buf[2..] {
+                    [b'A', ..] => Key::ArrowUp,
+                    [b'B', ..] => Key::ArrowDown,
+                    [b'C', ..] => Key::ArrowRight,
+                    [b'D', ..] => Key::ArrowLeft,
+                    [b'1', b'~', ..] | [b'H', ..] => Key::Home,
+                    [b'2', b'~', ..] => Key::Insert,
+                    [b'3', b'~', ..] => Key::Delete,
+                    [b'5', b'~', ..] => Key::PageUp,
+                    [b'6', b'~', ..] => Key::PageDown,
+                    [b'4', b'~', ..] | [b'7', b'~', ..] | [b'F', ..] => Key::End,
+                    [b'1', b'0', b'~', ..] => Key::F0,
+                    [b'1', b'1', b'~', ..] => Key::F1,
+                    [b'1', b'2', b'~', ..] => Key::F2,
+                    [b'1', b'3', b'~', ..] => Key::F3,
+                    [b'1', b'4', b'~', ..] => Key::F4,
+                    [b'1', b'5', b'~', ..] => Key::F5,
+                    [b'1', b'7', b'~', ..] => Key::F6,
+                    [b'1', b'8', b'~', ..] => Key::F7,
+                    [b'1', b'9', b'~', ..] => Key::F8,
+                    [b'2', b'0', b'~', ..] => Key::F9,
+                    [b'2', b'1', b'~', ..] => Key::F10,
+                    [b'2', b'3', b'~', ..] => Key::F11,
+                    [b'2', b'4', b'~', ..] => Key::F12,
+                    [b'2', b'5', b'~', ..] => Key::F13,
+                    [b'2', b'6', b'~', ..] => Key::F14,
+                    [b'2', b'8', b'~', ..] => Key::F15,
+                    [b'2', b'9', b'~', ..] => Key::F16,
+                    [b'3', b'1', b'~', ..] => Key::F17,
+                    [b'3', b'2', b'~', ..] => Key::F18,
+                    [b'3', b'3', b'~', ..] => Key::F19,
+                    [b'3', b'4', b'~', ..] => Key::F20,
+                    _ => Key::Unknown,
+                };
+                InputEvent::Key(key)
+            }
+        }
+        _ => InputEvent::Unknown,
     };
-    InputEvent::Key(key)
+    e
 }
 
 /// Read input (key or mouse) from standard input.
@@ -234,8 +259,16 @@ fn read_key(stdin: &mut StdinLock, buf: &mut [u8]) -> io::Result<Option<InputEve
         Ok(0) => Ok(None),
         Ok(n) => {
             let event = match buf[0] {
+                0x01..=0x1A => {
+                    let c = ((buf[0] - 0x01) + b'a') as char;
+                    if c == 'm' {
+                        InputEvent::Key(Key::Enter) // Ctrl + M
+                    } else {
+                        InputEvent::Key(Key::Ctrl(c))
+                    }
+                }
                 0x1B => parse_escape_sequence(buf, n),
-                c if c.is_ascii() => InputEvent::Key(Key::Char(c as char)),
+                0x20..=0x7e => InputEvent::Key(Key::Char(buf[0] as char)),
                 _ => InputEvent::Key(Key::Unknown),
             };
             Ok(Some(event))
@@ -268,7 +301,7 @@ impl InputListener {
 
         let handle = thread::spawn(move || {
             let mut stdin = io::stdin().lock();
-            let mut buf = [0u8; 128];
+            let mut buf = [0u8; 64];
 
             loop {
                 if stop_rx.try_recv().is_ok() {
@@ -492,7 +525,7 @@ mod tests {
             InputEvent::Key(Key::F1)
         );
         assert_eq!(
-            parse_escape_sequence(b"\x1B[1P", 4),
+            parse_escape_sequence(b"\x1BOP", 4),
             InputEvent::Key(Key::F1)
         );
     }

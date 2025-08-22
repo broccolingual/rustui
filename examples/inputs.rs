@@ -42,6 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         format!("Mouse Move: at ({},{})", x, y)
                     }
                 },
+                Some(InputEvent::Unknown) => "Unknown input".to_string(),
                 None => "No input yet".to_string(),
             };
 
