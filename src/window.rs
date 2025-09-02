@@ -99,7 +99,7 @@ impl Window {
                 2,
                 1,
                 &format!("FPS: {fps:.2}"),
-                Attr::BOLD,
+                Attr::Bold,
                 Color::Green,
                 Color::default(),
                 Align::Left,

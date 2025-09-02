@@ -5,7 +5,7 @@ use crate::{Attr, Color};
 const CHUNK_SIZE: usize = 1024;
 
 /// Represents a single cell in the framebuffer.
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 struct Cell {
     /// The character displayed in the cell.
     pub ch: char,
@@ -258,7 +258,7 @@ impl Framebuffer {
             for x in 0..other.width {
                 if x + x_offset < self.width && y + y_offset < self.height {
                     let idx = (y + y_offset) * self.width + (x + x_offset);
-                    self.buffer[idx] = other.buffer[y * other.width + x].clone();
+                    self.buffer[idx] = other.buffer[y * other.width + x];
                 }
             }
         }
@@ -331,7 +331,7 @@ impl Framebuffer {
                 chunk.push_str(&back.bg.to_ansi(false));
             }
             chunk.push(back.ch); // Add the character
-            self.buffer[idx] = back.clone(); // Copy the Cell to the front buffer
+            self.buffer[idx] = *back; // Copy the Cell to the front buffer
 
             if chunk.len() >= CHUNK_SIZE {
                 stdout_lock.write_all(chunk.as_bytes())?;

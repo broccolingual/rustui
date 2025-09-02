@@ -125,7 +125,7 @@ impl FileReader {
         canvas.set_named_border(
             &format!("File Reader - {}", self.file_path),
             Align::Center,
-            Attr::NORMAL,
+            Attr::default(),
             Color::White,
             Color::default(),
         );
@@ -147,9 +147,9 @@ impl FileReader {
 
             // 現在行のハイライト
             let (attrs, fg, bg) = if is_current {
-                (Attr::NORMAL, Color::Black, Color::White)
+                (Attr::default(), Color::Black, Color::White)
             } else {
-                (Attr::NORMAL, Color::White, Color::default())
+                (Attr::default(), Color::White, Color::default())
             };
 
             // 行番号を表示
@@ -193,7 +193,7 @@ impl FileReader {
             canvas.width / 2,
             canvas.height - 1,
             &status,
-            Attr::NORMAL,
+            Attr::default(),
             Color::Yellow,
             Color::default(),
             Align::Center,

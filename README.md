@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             canvas.set_named_border(
                 "HELLO WORLD",
                 Align::Right,
-                Attr::NORMAL,
+                Attr::default(),
                 Color::White,
                 Color::default(),
             ); // Set a named border for the canvas
@@ -45,10 +45,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 canvas.width / 2, // Center the text horizontally
                 canvas.height / 2,
                 "Hello, world! (Press 'q' to quit)",
-                Attr::NORMAL,              // Set text decoration
-                Color::Green,              // Set text color
-                Color::RGB(128, 192, 128), // Set background color
-                Align::Center,             // Set text alignment to center
+                Attr::Bold,       // Set text decoration
+                Color::Green,     // Set text color
+                Color::default(), // Set background color
+                Align::Center,    // Set text alignment to center
             );
         })?;
 
