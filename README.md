@@ -128,6 +128,12 @@ cargo build
 # Run tests
 cargo test
 
+# Run clippy
+cargo clippy --all-targets --all-features -- -D warnings
+
+# Run formatting
+cargo fmt --all --check
+
 # Run the demo
 cargo run --example hello_world
 ```

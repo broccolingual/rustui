@@ -36,7 +36,7 @@ impl Terminal {
     /// Returns a new `Terminal` instance.
     pub fn new() -> Self {
         let fd: RawFd = std::io::stdout().as_raw_fd();
-        Terminal { fd, original: None }
+        Self { fd, original: None }
     }
 
     /// Get a borrowed file descriptor with error handling.
@@ -78,8 +78,8 @@ impl Terminal {
                 | LocalFlags::ISIG
                 | LocalFlags::IEXTEN,
         );
-        raw.control_chars[libc::VMIN as usize] = 1; // Minimum number of characters to read
-        raw.control_chars[libc::VTIME as usize] = 0; // No timeout
+        raw.control_chars[libc::VMIN] = 1; // Minimum number of characters to read
+        raw.control_chars[libc::VTIME] = 0; // No timeout
 
         termios::tcsetattr(borrowed_fd, SetArg::TCSANOW, &raw)?;
 
@@ -155,6 +155,12 @@ impl Terminal {
                 Err(io::Error::last_os_error())
             }
         }
+    }
+}
+
+impl Default for Terminal {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

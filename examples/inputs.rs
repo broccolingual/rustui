@@ -13,9 +13,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         // Check for key presses
         if let Ok(event) = input_rx.try_recv() {
-            match event {
-                InputEvent::Key(Key::Char('q')) => break,
-                _ => (),
+            if let InputEvent::Key(Key::Char('q')) = event {
+                break;
             }
             key_last_pressed = Some(event);
         }

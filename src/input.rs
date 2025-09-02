@@ -183,7 +183,7 @@ fn parse_escape_sequence(buf: &[u8], n: usize) -> InputEvent {
     }
 
     // We can check this using `showkey -a` command
-    let e = match &buf[1] {
+    match &buf[1] {
         // Check SS3 sequence
         b'O' => {
             let key = match buf[2] {
@@ -244,8 +244,7 @@ fn parse_escape_sequence(buf: &[u8], n: usize) -> InputEvent {
             }
         }
         _ => InputEvent::Unknown,
-    };
-    e
+    }
 }
 
 /// Read input (key or mouse) from standard input.

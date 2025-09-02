@@ -144,11 +144,10 @@ impl Core {
         );
         for y in 0..field::FIELD_HEIGHT {
             for x in 0..field::FIELD_WIDTH {
-                let color: Color;
-                match self.field.get_block(x, y) {
-                    Some(block_type) => color = block_type.get_color(),
-                    None => color = Color::default(),
-                }
+                let color = match self.field.get_block(x, y) {
+                    Some(block_type) => block_type.get_color(),
+                    None => Color::default(),
+                };
                 if y == 4 {
                     self.field_frame.set_str(
                         x * 2 + 1,
