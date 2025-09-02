@@ -121,7 +121,7 @@ impl Core {
                 pos.x as usize * 2 + 1,
                 pos.y as usize + 1,
                 "  ",
-                Attr::NORMAL,
+                Attr::default(),
                 Color::White,
                 block.get_color(),
                 Align::Left,
@@ -132,12 +132,12 @@ impl Core {
     fn update_field_frame(&mut self) {
         self.field_frame.clear();
         self.field_frame
-            .set_border(Attr::NORMAL, Color::White, Color::default());
+            .set_border(Attr::default(), Color::White, Color::default());
         self.field_frame.set_str(
             0,
             0,
             "                      ",
-            Attr::NORMAL,
+            Attr::default(),
             Color::White,
             Color::default(),
             Align::Left,
@@ -153,7 +153,7 @@ impl Core {
                         x * 2 + 1,
                         y + 1,
                         "──",
-                        Attr::NORMAL,
+                        Attr::default(),
                         Color::White,
                         color,
                         Align::Left,
@@ -164,7 +164,7 @@ impl Core {
                     x * 2 + 1,
                     y + 1,
                     "  ",
-                    Attr::NORMAL,
+                    Attr::default(),
                     Color::White,
                     color,
                     Align::Left,
@@ -178,7 +178,7 @@ impl Core {
         self.next_block_frame.set_named_border(
             "NEXT",
             Align::Center,
-            Attr::NORMAL,
+            Attr::default(),
             Color::White,
             Color::default(),
         );
@@ -191,7 +191,7 @@ impl Core {
         self.holding_block_frame.set_named_border(
             "HOLD",
             Align::Center,
-            Attr::NORMAL,
+            Attr::default(),
             Color::White,
             Color::default(),
         );

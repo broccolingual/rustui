@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             canvas.set_named_border(
                 "INPUTS",
                 Align::Right,
-                Attr::NORMAL,
+                Attr::default(),
                 Color::White,
                 Color::default(),
             );
@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 canvas.width / 2,
                 canvas.height / 2,
                 &full_text,
-                Attr::NORMAL,
+                Attr::default(),
                 Color::White,
                 Color::default(),
                 Align::Center,

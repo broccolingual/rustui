@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             canvas.set_named_border(
                 "COLORS",
                 Align::Right,
-                Attr::NORMAL,
+                Attr::default(),
                 Color::White,
                 Color::default(),
             );
@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 canvas.width / 2 + 1,
                 canvas.height / 2,
                 "Color Circle",
-                Attr::BOLD,
+                Attr::Bold,
                 Color::White,
                 Color::default(),
                 Align::Center,
@@ -59,7 +59,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 3,
                 2,
                 "Press 'q' to quit",
-                Attr::BOLD,
+                Attr::Bold,
                 Color::White,
                 Color::default(),
                 Align::Left,

@@ -5,23 +5,34 @@ bitflags! {
     /// Represents terminal attributes using bitflags.
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct Attr: u16 {
-        const NORMAL = 1; // 0
-        const BOLD = 2; // 1
-        const THIN = 4; // 2
-        const ITALIC = 8; // 3
-        const UNDERLINE = 16; // 4
-        const BLINK = 32; // 5
-        const FASTBLINK = 64; // 6
-        const INVERT = 128; // 7
-        const HIDDEN = 256; // 8
-        const REMOVE = 512; // 9
-        const PRIMARY = 1024; // 10
+        const NORMAL = 0b0000_0000_0000_0001; // deprecated
+        const Normal = 0b0000_0000_0000_0001;
+        const BOLD = 0b0000_0000_0000_0010; // deprecated
+        const Bold = 0b0000_0000_0000_0010;
+        const THIN = 0b0000_0000_0000_0100; // deprecated
+        const Thin = 0b0000_0000_0000_0100;
+        const ITALIC = 0b0000_0000_0000_1000; // deprecated
+        const Italic = 0b0000_0000_0000_1000;
+        const UNDERLINE = 0b0000_0000_0001_0000; // deprecated
+        const Underline = 0b0000_0000_0001_0000;
+        const BLINK = 0b0000_0000_0010_0000; // deprecated
+        const Blink = 0b0000_0000_0010_0000;
+        const FASTBLINK = 0b0000_0000_0100_0000; // deprecated
+        const FastBlink = 0b0000_0000_0100_0000;
+        const INVERT = 0b0000_0000_1000_0000; // deprecated
+        const Invert = 0b0000_0000_1000_0000;
+        const HIDDEN = 0b0000_0001_0000_0000; // deprecated
+        const Hidden = 0b0000_0001_0000_0000;
+        const REMOVE = 0b0000_0010_0000_0000; // deprecated
+        const Remove = 0b0000_0010_0000_0000;
+        const PRIMARY = 0b0000_0100_0000_0000; // deprecated
+        const Primary = 0b0000_0100_0000_0000;
     }
 }
 
 impl Default for Attr {
     fn default() -> Self {
-        Attr::NORMAL
+        Attr::Normal
     }
 }
 
@@ -35,17 +46,17 @@ impl Attr {
         }
 
         let attr_mappings = [
-            (Attr::NORMAL, "0"),
-            (Attr::BOLD, "1"),
-            (Attr::THIN, "2"),
-            (Attr::ITALIC, "3"),
-            (Attr::UNDERLINE, "4"),
-            (Attr::BLINK, "5"),
-            (Attr::FASTBLINK, "6"),
-            (Attr::INVERT, "7"),
-            (Attr::HIDDEN, "8"),
-            (Attr::REMOVE, "9"),
-            (Attr::PRIMARY, "10"),
+            (Attr::Normal, "0"),
+            (Attr::Bold, "1"),
+            (Attr::Thin, "2"),
+            (Attr::Italic, "3"),
+            (Attr::Underline, "4"),
+            (Attr::Blink, "5"),
+            (Attr::FastBlink, "6"),
+            (Attr::Invert, "7"),
+            (Attr::Hidden, "8"),
+            (Attr::Remove, "9"),
+            (Attr::Primary, "10"),
         ];
 
         let mut buf = String::with_capacity(24);
