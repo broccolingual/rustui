@@ -46,17 +46,17 @@ impl Attr {
         }
 
         let attr_mappings = [
-            (Attr::NORMAL | Attr::Normal, "0"),
-            (Attr::BOLD | Attr::Bold, "1"),
-            (Attr::THIN | Attr::Thin, "2"),
-            (Attr::ITALIC | Attr::Italic, "3"),
-            (Attr::UNDERLINE | Attr::Underline, "4"),
-            (Attr::BLINK | Attr::Blink, "5"),
-            (Attr::FASTBLINK | Attr::FastBlink, "6"),
-            (Attr::INVERT | Attr::Invert, "7"),
-            (Attr::HIDDEN | Attr::Hidden, "8"),
-            (Attr::REMOVE | Attr::Remove, "9"),
-            (Attr::PRIMARY | Attr::Primary, "10"),
+            (Attr::Normal, "0"),
+            (Attr::Bold, "1"),
+            (Attr::Thin, "2"),
+            (Attr::Italic, "3"),
+            (Attr::Underline, "4"),
+            (Attr::Blink, "5"),
+            (Attr::FastBlink, "6"),
+            (Attr::Invert, "7"),
+            (Attr::Hidden, "8"),
+            (Attr::Remove, "9"),
+            (Attr::Primary, "10"),
         ];
 
         let mut buf = String::with_capacity(24);
