@@ -2,15 +2,13 @@ name: Cargo Release
 
 on:
   workflow_dispatch:
-  pull_request:
-    types: 
-      - closed
 
 jobs:
   release:
     runs-on: ubuntu-latest
     environment: release
     permissions:
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v5
