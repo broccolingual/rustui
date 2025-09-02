@@ -14,6 +14,9 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v5
+      - run: |
+          git config --local user.name "GitHub Actions"
+          git config --local user.email "actions@github.com"
 
       - name: Install cargo release
         run: cargo install cargo-release
