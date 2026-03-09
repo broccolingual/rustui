@@ -1,3 +1,4 @@
+use std::fmt::Write as FmtWrite;
 use std::io::{self, Write};
 
 use crate::{Attr, Color};
@@ -254,13 +255,16 @@ impl Framebuffer {
     /// * `x_offset`: The x-coordinate offset to start combining.
     /// * `y_offset`: The y-coordinate offset to start combining.
     pub fn combine(&mut self, other: &Framebuffer, x_offset: usize, y_offset: usize) {
-        for y in 0..other.height {
-            for x in 0..other.width {
-                if x + x_offset < self.width && y + y_offset < self.height {
-                    let idx = (y + y_offset) * self.width + (x + x_offset);
-                    self.buffer[idx] = other.buffer[y * other.width + x];
-                }
-            }
+        let max_y = other.height.min(self.height.saturating_sub(y_offset));
+        let max_x = other.width.min(self.width.saturating_sub(x_offset));
+        if max_x == 0 || max_y == 0 {
+            return;
+        }
+        for y in 0..max_y {
+            let dst_start = (y + y_offset) * self.width + x_offset;
+            let src_start = y * other.width;
+            self.buffer[dst_start..dst_start + max_x]
+                .copy_from_slice(&other.buffer[src_start..src_start + max_x]);
         }
     }
 
@@ -295,48 +299,42 @@ impl Framebuffer {
         let mut prev_attrs = Attr::NORMAL;
         let mut prev_fg: Color = Color::default();
         let mut prev_bg: Color = Color::default();
-
-        stdout_lock.write_all("\x1B[0m".as_bytes())?; // Reset all attributes
-        stdout_lock.flush()?;
-
-        // Collect all changed cells first
-        let mut changes = Vec::new();
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let idx = y * self.width + x;
-                let front = &self.buffer[idx];
-                let back = &back_fb.buffer[idx];
-
-                if front != back {
-                    changes.push((x, y, idx, back));
-                }
-            }
-        }
+        let mut has_changes = false;
 
         let mut chunk = String::with_capacity(CHUNK_SIZE);
 
-        // Draw the output for each changed cell
-        for (x, y, idx, back) in changes {
-            chunk.push_str(&format!("\x1B[{};{}H", y + 1, x + 1)); // Move to the target coordinates
-            if prev_attrs != back.attrs {
-                prev_attrs = back.attrs;
-                chunk.push_str(&back.attrs.to_ansi());
-            }
-            if prev_fg != back.fg {
-                prev_fg = back.fg;
-                chunk.push_str(&back.fg.to_ansi(true));
-            }
-            if prev_bg != back.bg {
-                prev_bg = back.bg;
-                chunk.push_str(&back.bg.to_ansi(false));
-            }
-            chunk.push(back.ch); // Add the character
-            self.buffer[idx] = *back; // Copy the Cell to the front buffer
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let idx = y * self.width + x;
+                let back = back_fb.buffer[idx]; // Cell is Copy; no heap allocation
 
-            if chunk.len() >= CHUNK_SIZE {
-                stdout_lock.write_all(chunk.as_bytes())?;
-                stdout_lock.flush()?;
-                chunk.clear();
+                if self.buffer[idx] != back {
+                    if !has_changes {
+                        chunk.push_str("\x1B[0m"); // Reset all attributes before first change
+                        has_changes = true;
+                    }
+                    write!(chunk, "\x1B[{};{}H", y + 1, x + 1).unwrap(); // Move to the target coordinates
+                    if prev_attrs != back.attrs {
+                        prev_attrs = back.attrs;
+                        back.attrs.write_ansi(&mut chunk);
+                    }
+                    if prev_fg != back.fg {
+                        prev_fg = back.fg;
+                        back.fg.write_ansi(true, &mut chunk);
+                    }
+                    if prev_bg != back.bg {
+                        prev_bg = back.bg;
+                        back.bg.write_ansi(false, &mut chunk);
+                    }
+                    chunk.push(back.ch); // Add the character
+                    self.buffer[idx] = back; // Copy the Cell to the front buffer
+
+                    if chunk.len() >= CHUNK_SIZE {
+                        stdout_lock.write_all(chunk.as_bytes())?;
+                        stdout_lock.flush()?;
+                        chunk.clear();
+                    }
+                }
             }
         }
         if !chunk.is_empty() {
@@ -504,5 +502,30 @@ mod tests {
         assert_eq!(fb1.buffer[6].ch, '╰');
         assert_eq!(fb1.buffer[7].ch, '─');
         assert_eq!(fb1.buffer[8].ch, '╯');
+    }
+
+    #[test]
+    fn test_fb_combine_out_of_bounds() {
+        let mut fb1 = Framebuffer::new(3, 2);
+        let mut fb2 = Framebuffer::new(2, 2);
+        fb2.set_char(
+            0,
+            0,
+            'X',
+            Attr::default(),
+            Color::default(),
+            Color::default(),
+        );
+
+        // x_offset fully outside: must not panic
+        fb1.combine(&fb2, 7, 0);
+        // y_offset fully outside: must not panic
+        fb1.combine(&fb2, 0, 5);
+        // both offsets outside
+        fb1.combine(&fb2, 7, 5);
+        // fb1 should be unchanged (all spaces)
+        for cell in &fb1.buffer {
+            assert_eq!(cell.ch, ' ');
+        }
     }
 }

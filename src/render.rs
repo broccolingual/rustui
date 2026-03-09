@@ -49,7 +49,6 @@ impl RenderThread {
                 if elapsed_since_frame < rendering_rate {
                     thread::sleep(rendering_rate - elapsed_since_frame);
                 }
-                last_frame_time = time::Instant::now();
 
                 // Rendering process
                 match back_fb.try_lock() {
@@ -58,12 +57,16 @@ impl RenderThread {
                             if front_locked.refresh(&back_locked).is_err() {
                                 continue;
                             }
+                            // Update frame time only after a successful render so that
+                            // a failed lock attempt does not consume the frame budget.
+                            last_frame_time = time::Instant::now();
                             frame_count += 1;
                         }
                     }
                     Err(TryLockError::WouldBlock) => {
-                        // Skip if the back buffer is locked
-                        thread::sleep(time::Duration::from_millis(1));
+                        // back_fb is locked by draw(); retry immediately without
+                        // resetting the frame timer so the next iteration does not
+                        // sleep a full rendering_rate before retrying.
                         continue;
                     }
                     Err(_) => {
