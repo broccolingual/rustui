@@ -114,25 +114,13 @@ impl Framebuffer {
         bg: Color,
         align: Align,
     ) {
-        // For Left alignment, no need to count chars first.
-        if let Align::Left = align {
-            for (i, ch) in str.chars().enumerate() {
-                let px = x + i;
-                if px >= self.width {
-                    break;
-                }
-                self.set_char(px, y, ch, attrs, fg, bg);
-            }
-            return;
-        }
-        // For Center/Right, collect once to get length and iterate without a second traversal.
-        let chars: Vec<char> = str.chars().collect();
+        let str_len = str.chars().count();
         let start_x = match align {
-            Align::Center => x.saturating_sub(chars.len() / 2),
-            Align::Right => x.saturating_sub(chars.len()),
-            Align::Left => unreachable!(),
+            Align::Left => x,
+            Align::Center => x.saturating_sub(str_len / 2),
+            Align::Right => x.saturating_sub(str_len),
         };
-        for (i, ch) in chars.iter().copied().enumerate() {
+        for (i, ch) in str.chars().enumerate() {
             let px = start_x + i;
             if px < self.width {
                 self.set_char(px, y, ch, attrs, fg, bg);
@@ -269,6 +257,9 @@ impl Framebuffer {
     pub fn combine(&mut self, other: &Framebuffer, x_offset: usize, y_offset: usize) {
         let max_y = other.height.min(self.height.saturating_sub(y_offset));
         let max_x = other.width.min(self.width.saturating_sub(x_offset));
+        if max_x == 0 || max_y == 0 {
+            return;
+        }
         for y in 0..max_y {
             let dst_start = (y + y_offset) * self.width + x_offset;
             let src_start = y * other.width;
@@ -511,5 +502,30 @@ mod tests {
         assert_eq!(fb1.buffer[6].ch, '╰');
         assert_eq!(fb1.buffer[7].ch, '─');
         assert_eq!(fb1.buffer[8].ch, '╯');
+    }
+
+    #[test]
+    fn test_fb_combine_out_of_bounds() {
+        let mut fb1 = Framebuffer::new(3, 2);
+        let mut fb2 = Framebuffer::new(2, 2);
+        fb2.set_char(
+            0,
+            0,
+            'X',
+            Attr::default(),
+            Color::default(),
+            Color::default(),
+        );
+
+        // x_offset fully outside: must not panic
+        fb1.combine(&fb2, 7, 0);
+        // y_offset fully outside: must not panic
+        fb1.combine(&fb2, 0, 5);
+        // both offsets outside
+        fb1.combine(&fb2, 7, 5);
+        // fb1 should be unchanged (all spaces)
+        for cell in &fb1.buffer {
+            assert_eq!(cell.ch, ' ');
+        }
     }
 }
