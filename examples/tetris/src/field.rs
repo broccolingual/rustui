@@ -67,6 +67,7 @@ impl FieldExt for Field {
         false
     }
 
+    #[allow(clippy::needless_range_loop)]
     fn is_gameover(&self) -> bool {
         for x in 0..FIELD_WIDTH {
             if self[FIELD_MARGIN][x].is_some() {
