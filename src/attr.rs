@@ -1,4 +1,3 @@
-use crate::csi;
 use bitflags::bitflags;
 
 bitflags! {
@@ -41,8 +40,16 @@ impl Attr {
     ///
     /// Returns a string containing the ANSI escape codes for the active attributes.
     pub fn to_ansi(&self) -> String {
+        let mut buf = String::with_capacity(24);
+        self.write_ansi(&mut buf);
+        buf
+    }
+
+    /// Write ANSI escape codes directly into an existing buffer, avoiding allocation.
+    pub fn write_ansi(&self, buf: &mut String) {
         if self.is_empty() {
-            return csi!("0m");
+            buf.push_str("\x1B[0m");
+            return;
         }
 
         let attr_mappings = [
@@ -59,7 +66,6 @@ impl Attr {
             (Attr::Primary, "10"),
         ];
 
-        let mut buf = String::with_capacity(24);
         buf.push_str("\x1B[");
 
         let mut first = true;
@@ -74,7 +80,6 @@ impl Attr {
         }
 
         buf.push('m');
-        buf
     }
 }
 

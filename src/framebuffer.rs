@@ -1,3 +1,4 @@
+use std::fmt::Write as FmtWrite;
 use std::io::{self, Write};
 
 use crate::{Attr, Color};
@@ -113,13 +114,25 @@ impl Framebuffer {
         bg: Color,
         align: Align,
     ) {
-        let str_len = str.chars().count();
+        // For Left alignment, no need to count chars first.
+        if let Align::Left = align {
+            for (i, ch) in str.chars().enumerate() {
+                let px = x + i;
+                if px >= self.width {
+                    break;
+                }
+                self.set_char(px, y, ch, attrs, fg, bg);
+            }
+            return;
+        }
+        // For Center/Right, collect once to get length and iterate without a second traversal.
+        let chars: Vec<char> = str.chars().collect();
         let start_x = match align {
-            Align::Left => x,
-            Align::Center => x.saturating_sub(str_len / 2),
-            Align::Right => x.saturating_sub(str_len),
+            Align::Center => x.saturating_sub(chars.len() / 2),
+            Align::Right => x.saturating_sub(chars.len()),
+            Align::Left => unreachable!(),
         };
-        for (i, ch) in str.chars().enumerate() {
+        for (i, ch) in chars.iter().copied().enumerate() {
             let px = start_x + i;
             if px < self.width {
                 self.set_char(px, y, ch, attrs, fg, bg);
@@ -254,13 +267,13 @@ impl Framebuffer {
     /// * `x_offset`: The x-coordinate offset to start combining.
     /// * `y_offset`: The y-coordinate offset to start combining.
     pub fn combine(&mut self, other: &Framebuffer, x_offset: usize, y_offset: usize) {
-        for y in 0..other.height {
-            for x in 0..other.width {
-                if x + x_offset < self.width && y + y_offset < self.height {
-                    let idx = (y + y_offset) * self.width + (x + x_offset);
-                    self.buffer[idx] = other.buffer[y * other.width + x];
-                }
-            }
+        let max_y = other.height.min(self.height.saturating_sub(y_offset));
+        let max_x = other.width.min(self.width.saturating_sub(x_offset));
+        for y in 0..max_y {
+            let dst_start = (y + y_offset) * self.width + x_offset;
+            let src_start = y * other.width;
+            self.buffer[dst_start..dst_start + max_x]
+                .copy_from_slice(&other.buffer[src_start..src_start + max_x]);
         }
     }
 
@@ -295,48 +308,42 @@ impl Framebuffer {
         let mut prev_attrs = Attr::NORMAL;
         let mut prev_fg: Color = Color::default();
         let mut prev_bg: Color = Color::default();
-
-        stdout_lock.write_all("\x1B[0m".as_bytes())?; // Reset all attributes
-        stdout_lock.flush()?;
-
-        // Collect all changed cells first
-        let mut changes = Vec::new();
-        for y in 0..self.height {
-            for x in 0..self.width {
-                let idx = y * self.width + x;
-                let front = &self.buffer[idx];
-                let back = &back_fb.buffer[idx];
-
-                if front != back {
-                    changes.push((x, y, idx, back));
-                }
-            }
-        }
+        let mut has_changes = false;
 
         let mut chunk = String::with_capacity(CHUNK_SIZE);
 
-        // Draw the output for each changed cell
-        for (x, y, idx, back) in changes {
-            chunk.push_str(&format!("\x1B[{};{}H", y + 1, x + 1)); // Move to the target coordinates
-            if prev_attrs != back.attrs {
-                prev_attrs = back.attrs;
-                chunk.push_str(&back.attrs.to_ansi());
-            }
-            if prev_fg != back.fg {
-                prev_fg = back.fg;
-                chunk.push_str(&back.fg.to_ansi(true));
-            }
-            if prev_bg != back.bg {
-                prev_bg = back.bg;
-                chunk.push_str(&back.bg.to_ansi(false));
-            }
-            chunk.push(back.ch); // Add the character
-            self.buffer[idx] = *back; // Copy the Cell to the front buffer
+        for y in 0..self.height {
+            for x in 0..self.width {
+                let idx = y * self.width + x;
+                let back = back_fb.buffer[idx]; // Cell is Copy; no heap allocation
 
-            if chunk.len() >= CHUNK_SIZE {
-                stdout_lock.write_all(chunk.as_bytes())?;
-                stdout_lock.flush()?;
-                chunk.clear();
+                if self.buffer[idx] != back {
+                    if !has_changes {
+                        chunk.push_str("\x1B[0m"); // Reset all attributes before first change
+                        has_changes = true;
+                    }
+                    write!(chunk, "\x1B[{};{}H", y + 1, x + 1).unwrap(); // Move to the target coordinates
+                    if prev_attrs != back.attrs {
+                        prev_attrs = back.attrs;
+                        back.attrs.write_ansi(&mut chunk);
+                    }
+                    if prev_fg != back.fg {
+                        prev_fg = back.fg;
+                        back.fg.write_ansi(true, &mut chunk);
+                    }
+                    if prev_bg != back.bg {
+                        prev_bg = back.bg;
+                        back.bg.write_ansi(false, &mut chunk);
+                    }
+                    chunk.push(back.ch); // Add the character
+                    self.buffer[idx] = back; // Copy the Cell to the front buffer
+
+                    if chunk.len() >= CHUNK_SIZE {
+                        stdout_lock.write_all(chunk.as_bytes())?;
+                        stdout_lock.flush()?;
+                        chunk.clear();
+                    }
+                }
             }
         }
         if !chunk.is_empty() {

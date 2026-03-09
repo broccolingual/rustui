@@ -318,6 +318,8 @@ impl InputListener {
                             Err(mpsc::TrySendError::Full(_)) => {} // If the channel is full, we can drop the event
                             Err(mpsc::TrySendError::Disconnected(_)) => break, // Stop the loop if the receiver is dropped
                         }
+                        // Skip sleep to immediately drain any buffered input (e.g. burst typing, mouse moves)
+                        continue;
                     }
                     Ok(None) => {} // No input
                     Err(_) => {}   // Read error, continue

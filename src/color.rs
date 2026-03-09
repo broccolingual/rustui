@@ -20,8 +20,14 @@ impl Color {
     ///
     /// Returns an ANSI escape code string for the color.
     pub fn to_ansi(&self, fg: bool) -> String {
-        use std::fmt::Write;
         let mut buf = String::with_capacity(20);
+        self.write_ansi(fg, &mut buf);
+        buf
+    }
+
+    /// Write ANSI escape code directly into an existing buffer, avoiding allocation.
+    pub fn write_ansi(&self, fg: bool, buf: &mut String) {
+        use std::fmt::Write;
         buf.push_str("\x1B[");
 
         match self {
@@ -59,7 +65,6 @@ impl Color {
             }
             Color::None => buf.push_str(if fg { "39m" } else { "49m" }),
         }
-        buf
     }
 }
 
