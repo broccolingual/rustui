@@ -1,4 +1,3 @@
-use crate::csi;
 use nix::libc;
 use nix::sys::termios::{self, ControlFlags, InputFlags, LocalFlags, OutputFlags, SetArg, Termios};
 use std::os::unix::io::{BorrowedFd, RawFd};
@@ -64,6 +63,7 @@ impl Terminal {
                 | InputFlags::ISTRIP
                 | InputFlags::IXON,
         );
+        raw.input_flags.insert(InputFlags::IUTF8); // correct multi-byte char handling on Backspace
 
         raw.output_flags.remove(OutputFlags::OPOST); // disable output processing
 
@@ -71,13 +71,8 @@ impl Terminal {
             .remove(ControlFlags::CSIZE | ControlFlags::PARENB);
         raw.control_flags.insert(ControlFlags::CS8);
 
-        raw.local_flags.remove(
-            LocalFlags::ICANON
-                | LocalFlags::ECHONL
-                | LocalFlags::ECHO
-                | LocalFlags::ISIG
-                | LocalFlags::IEXTEN,
-        );
+        raw.local_flags
+            .remove(LocalFlags::ICANON | LocalFlags::ECHO | LocalFlags::ISIG | LocalFlags::IEXTEN);
         raw.control_chars[libc::VMIN] = 1; // Minimum number of characters to read
         raw.control_chars[libc::VTIME] = 0; // No timeout
 
@@ -99,16 +94,19 @@ impl Terminal {
         Ok(())
     }
 
-    /// Set the terminal to non-blocking mode
+    /// Set stdin to non-blocking mode.
+    ///
+    /// Note: targets `STDIN_FILENO`, not stdout. Setting O_NONBLOCK on stdout
+    /// would risk EAGAIN errors during large write bursts (e.g. refresh).
     ///
     /// Returns `Ok(())` if successful, or an error if it fails.
     pub fn set_nonblocking(&self) -> nix::Result<()> {
         unsafe {
-            let flags = libc::fcntl(self.fd, libc::F_GETFL);
+            let flags = libc::fcntl(libc::STDIN_FILENO, libc::F_GETFL);
             if flags == -1 {
                 return Err(nix::Error::last());
             }
-            let result = libc::fcntl(self.fd, libc::F_SETFL, flags | libc::O_NONBLOCK);
+            let result = libc::fcntl(libc::STDIN_FILENO, libc::F_SETFL, flags | libc::O_NONBLOCK);
             if result == -1 {
                 return Err(nix::Error::last());
             }
@@ -122,21 +120,22 @@ impl Terminal {
     ///
     /// Returns `Ok(())` if successful, or an error if it fails.
     pub fn exec(cmd: Cmd) -> io::Result<()> {
-        let ansi = match cmd {
-            Cmd::ShowCursor => csi!("?25h"),
-            Cmd::HideCursor => csi!("?25l"),
-            Cmd::MoveCursor(x, y) => csi!(&format!("{y};{x}H")),
-            Cmd::MoveCursorToHome => csi!("H"),
-            Cmd::ClearScreen => csi!("2J"),
-            Cmd::EnableAlternativeScreen => csi!("?1049h"),
-            Cmd::DisableAlternativeScreen => csi!("?1049l"),
-            Cmd::EnableMouseReporting => csi!("?1000h"),
-            Cmd::DisableMouseReporting => csi!("?1000l"),
-            Cmd::EnableSgrCoords => csi!("?1006h"),
-            Cmd::DisableSgrCoords => csi!("?1006l"),
-        };
-        print!("{ansi}");
-        io::stdout().flush()
+        let stdout = io::stdout();
+        let mut lock = stdout.lock();
+        match cmd {
+            Cmd::ShowCursor => lock.write_all(b"\x1B[?25h")?,
+            Cmd::HideCursor => lock.write_all(b"\x1B[?25l")?,
+            Cmd::MoveCursor(x, y) => write!(lock, "\x1B[{y};{x}H")?, // only arm that needs formatting
+            Cmd::MoveCursorToHome => lock.write_all(b"\x1B[H")?,
+            Cmd::ClearScreen => lock.write_all(b"\x1B[2J")?,
+            Cmd::EnableAlternativeScreen => lock.write_all(b"\x1B[?1049h")?,
+            Cmd::DisableAlternativeScreen => lock.write_all(b"\x1B[?1049l")?,
+            Cmd::EnableMouseReporting => lock.write_all(b"\x1B[?1000h")?,
+            Cmd::DisableMouseReporting => lock.write_all(b"\x1B[?1000l")?,
+            Cmd::EnableSgrCoords => lock.write_all(b"\x1B[?1006h")?,
+            Cmd::DisableSgrCoords => lock.write_all(b"\x1B[?1006l")?,
+        }
+        lock.flush()
     }
 
     /// Get the terminal size

@@ -53,8 +53,6 @@ pub mod term;
 #[cfg(target_os = "linux")]
 pub mod window;
 
-mod macros;
-
 pub use attr::*;
 pub use color::*;
 pub use framebuffer::*;

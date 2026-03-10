@@ -52,7 +52,7 @@ pub struct Framebuffer {
     pub width: usize,
     /// The height of the framebuffer.
     pub height: usize,
-    buffer: Vec<Cell>,
+    buffer: Box<[Cell]>,
 }
 
 impl Framebuffer {
@@ -63,7 +63,7 @@ impl Framebuffer {
     ///
     /// Returns a new `Framebuffer` instance.
     pub fn new(width: usize, height: usize) -> Self {
-        let buffer = vec![Cell::default(); width * height];
+        let buffer = vec![Cell::default(); width * height].into_boxed_slice();
         Self {
             width,
             height,

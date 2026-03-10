@@ -16,15 +16,6 @@ pub enum Color {
 }
 
 impl Color {
-    /// Convert the color to an ANSI escape code.
-    ///
-    /// Returns an ANSI escape code string for the color.
-    pub fn to_ansi(&self, fg: bool) -> String {
-        let mut buf = String::with_capacity(20);
-        self.write_ansi(fg, &mut buf);
-        buf
-    }
-
     /// Write ANSI escape code directly into an existing buffer, avoiding allocation.
     pub fn write_ansi(&self, fg: bool, buf: &mut String) {
         use std::fmt::Write;
@@ -76,15 +67,5 @@ mod tests {
     fn test_color_default() {
         let color = Color::default();
         assert_eq!(color, Color::None);
-    }
-
-    #[test]
-    fn test_color_to_ansi() {
-        assert!(Color::Black.to_ansi(true).contains("30m"));
-        assert!(Color::Red.to_ansi(false).contains("41m"));
-        assert!(Color::RGB(255, 0, 0).to_ansi(true).contains("38;2;255;0;0"));
-        assert!(Color::HSV(0, 255, 255)
-            .to_ansi(true)
-            .contains("38;2;255;0;0"));
     }
 }

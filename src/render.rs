@@ -64,10 +64,8 @@ impl RenderThread {
                         }
                     }
                     Err(TryLockError::WouldBlock) => {
-                        // back_fb is locked by draw(); retry immediately without
-                        // resetting the frame timer so the next iteration does not
-                        // sleep a full rendering_rate before retrying.
-                        continue;
+                        // If the back framebuffer is currently locked, we can skip this frame and try again later.
+                        thread::yield_now();
                     }
                     Err(_) => {
                         break;
