@@ -9,20 +9,20 @@ const CHUNK_SIZE: usize = 1024;
 #[derive(Clone, Copy, PartialEq, Debug)]
 struct Cell {
     /// The character displayed in the cell.
-    pub ch: char,
+    ch: char,
     /// Text attributes (bold, italic, underline, etc.)
-    pub attrs: Attr,
+    attrs: Attr,
     /// Foreground color as RGB values (0-255 each)
-    pub fg: Color,
+    fg: Color,
     /// Background color as RGB values (0-255 each)
-    pub bg: Color,
+    bg: Color,
 }
 
 impl Cell {
     /// Create a new cell with default values.
     ///
     /// Returns a `Cell` instance with default attributes and colors.
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             ch: ' ',
             attrs: Attr::default(),
@@ -287,7 +287,7 @@ impl Framebuffer {
     /// * `back_fb`: The back buffer to compare against.
     ///
     /// Returns `Ok(())` if successful, or an error if the framebuffers do not match.
-    pub fn refresh(&mut self, back_fb: &Framebuffer) -> io::Result<()> {
+    pub(crate) fn refresh(&mut self, back_fb: &Framebuffer) -> io::Result<()> {
         if self.height != back_fb.height || self.width != back_fb.width {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,

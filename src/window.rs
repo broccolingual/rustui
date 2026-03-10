@@ -173,11 +173,7 @@ impl Drop for Window {
 }
 
 /// A listener for window size changes
-pub struct WindowSizeListener {
-    /// The thread handle for the listener
-    handle: Option<thread::JoinHandle<()>>,
-    /// The stop signal for the listener
-    stop_signal: Option<Sender<()>>,
+struct WindowSizeListener {
     /// The receiver for size change events
     size_rx: Receiver<(usize, usize)>,
 }
@@ -188,13 +184,13 @@ impl WindowSizeListener {
     /// * `rate`: The rate at which to check for window size changes
     ///
     /// Returns `WindowSizeListener` instance.
-    pub fn new(terminal: Terminal, rate: Duration) -> Self {
+    fn new(terminal: Terminal, rate: Duration) -> Self {
         #[allow(clippy::type_complexity)]
         let (size_tx, size_rx): (SyncSender<(usize, usize)>, Receiver<(usize, usize)>) =
             mpsc::sync_channel(1);
-        let (stop_tx, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
+        let (_stop_tx, stop_rx): (Sender<()>, Receiver<()>) = mpsc::channel();
 
-        let handle = thread::spawn(move || {
+        let _handle = thread::spawn(move || {
             let mut prev_window_size: Option<(usize, usize)> = None; // Previous window size
             loop {
                 if stop_rx.try_recv().is_ok() {
@@ -217,32 +213,20 @@ impl WindowSizeListener {
             }
         });
 
-        Self {
-            handle: Some(handle),
-            stop_signal: Some(stop_tx),
-            size_rx,
-        }
+        Self { size_rx }
     }
 
     /// Try to receive a window size change event
     ///
     /// Returns the new window size if available, or an error if not.
-    pub fn try_recv(&self) -> Result<(usize, usize), mpsc::TryRecvError> {
+    fn try_recv(&self) -> Result<(usize, usize), mpsc::TryRecvError> {
         self.size_rx.try_recv()
     }
 
     /// Stop the window size listener
     ///
     /// Returns `Ok(())` if the listener was stopped successfully, or an error if it failed.
-    pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if let Some(tx) = self.stop_signal.take() {
-            tx.send(())?; // Send stop signal
-        }
-        if let Some(handle) = self.handle.take() {
-            handle
-                .join()
-                .map_err(|_| "Failed to join window size listener thread")?; // Wait for the thread to finish
-        }
+    fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         Ok(())
     }
 }
