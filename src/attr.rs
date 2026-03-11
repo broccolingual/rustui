@@ -36,15 +36,6 @@ impl Default for Attr {
 }
 
 impl Attr {
-    /// Convert attributes to ANSI escape codes
-    ///
-    /// Returns a string containing the ANSI escape codes for the active attributes.
-    pub fn to_ansi(&self) -> String {
-        let mut buf = String::with_capacity(24);
-        self.write_ansi(&mut buf);
-        buf
-    }
-
     /// Write ANSI escape codes directly into an existing buffer, avoiding allocation.
     pub fn write_ansi(&self, buf: &mut String) {
         if self.is_empty() {
@@ -91,17 +82,5 @@ mod tests {
     fn test_attr_default() {
         let attr = Attr::default();
         assert_eq!(attr, Attr::NORMAL);
-    }
-
-    #[test]
-    fn test_attr_to_ansi() {
-        let attr = Attr::BOLD | Attr::UNDERLINE;
-        assert_eq!(attr.to_ansi(), "\x1B[1;4m");
-
-        let attr = Attr::empty();
-        assert_eq!(attr.to_ansi(), "\x1B[0m");
-
-        let attr = Attr::all();
-        assert_eq!(attr.to_ansi(), "\x1B[0;1;2;3;4;5;6;7;8;9;10m");
     }
 }

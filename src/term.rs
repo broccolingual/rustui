@@ -1,4 +1,3 @@
-use crate::csi;
 use nix::libc;
 use nix::sys::termios::{self, ControlFlags, InputFlags, LocalFlags, OutputFlags, SetArg, Termios};
 use std::os::unix::io::{BorrowedFd, RawFd};
@@ -11,8 +10,6 @@ use std::{
 pub enum Cmd {
     ShowCursor,
     HideCursor,
-    MoveCursor(usize, usize),
-    MoveCursorToHome,
     ClearScreen,
     EnableAlternativeScreen,
     DisableAlternativeScreen,
@@ -23,7 +20,7 @@ pub enum Cmd {
 }
 
 /// Represents a terminal.
-pub struct Terminal {
+pub(crate) struct Terminal {
     /// The file descriptor for the terminal.
     fd: RawFd,
     /// The original terminal settings.
@@ -34,7 +31,7 @@ impl Terminal {
     /// Create a new terminal instance.
     ///
     /// Returns a new `Terminal` instance.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let fd: RawFd = std::io::stdout().as_raw_fd();
         Self { fd, original: None }
     }
@@ -52,7 +49,7 @@ impl Terminal {
     /// Enable raw mode
     ///
     /// Returns a `Terminal` instance with raw mode enabled.
-    pub fn enable_raw_mode(&mut self) -> nix::Result<()> {
+    pub(crate) fn enable_raw_mode(&mut self) -> nix::Result<()> {
         let borrowed_fd = self.get_borrowed_fd()?;
         let original = termios::tcgetattr(borrowed_fd)?;
         let mut raw = original.clone();
@@ -90,7 +87,7 @@ impl Terminal {
     /// Disable raw mode
     ///
     /// Returns `Ok(())` if successful, or an error if it fails.
-    pub fn disable_raw_mode(&mut self) -> nix::Result<()> {
+    pub(crate) fn disable_raw_mode(&mut self) -> nix::Result<()> {
         if let Some(original) = &self.original {
             let borrowed_fd = self.get_borrowed_fd()?;
             termios::tcsetattr(borrowed_fd, SetArg::TCSANOW, original)?;
@@ -102,7 +99,7 @@ impl Terminal {
     /// Set the terminal to non-blocking mode
     ///
     /// Returns `Ok(())` if successful, or an error if it fails.
-    pub fn set_nonblocking(&self) -> nix::Result<()> {
+    pub(crate) fn set_nonblocking(&self) -> nix::Result<()> {
         unsafe {
             let flags = libc::fcntl(self.fd, libc::F_GETFL);
             if flags == -1 {
@@ -121,26 +118,25 @@ impl Terminal {
     /// * `cmd` - The command to execute.
     ///
     /// Returns `Ok(())` if successful, or an error if it fails.
-    pub fn exec(cmd: Cmd) -> io::Result<()> {
-        let ansi = match cmd {
-            Cmd::ShowCursor => csi!("?25h"),
-            Cmd::HideCursor => csi!("?25l"),
-            Cmd::MoveCursor(x, y) => csi!(&format!("{y};{x}H")),
-            Cmd::MoveCursorToHome => csi!("H"),
-            Cmd::ClearScreen => csi!("2J"),
-            Cmd::EnableAlternativeScreen => csi!("?1049h"),
-            Cmd::DisableAlternativeScreen => csi!("?1049l"),
-            Cmd::EnableMouseReporting => csi!("?1000h"),
-            Cmd::DisableMouseReporting => csi!("?1000l"),
-            Cmd::EnableSgrCoords => csi!("?1006h"),
-            Cmd::DisableSgrCoords => csi!("?1006l"),
-        };
-        print!("{ansi}");
-        io::stdout().flush()
+    pub(crate) fn exec(cmd: Cmd) -> io::Result<()> {
+        let stdout = io::stdout();
+        let mut lock = stdout.lock();
+        match cmd {
+            Cmd::ShowCursor => lock.write_all(b"\x1B[?25h")?,
+            Cmd::HideCursor => lock.write_all(b"\x1B[?25l")?,
+            Cmd::ClearScreen => lock.write_all(b"\x1B[2J")?,
+            Cmd::EnableAlternativeScreen => lock.write_all(b"\x1B[?1049h")?,
+            Cmd::DisableAlternativeScreen => lock.write_all(b"\x1B[?1049l")?,
+            Cmd::EnableMouseReporting => lock.write_all(b"\x1B[?1000h")?,
+            Cmd::DisableMouseReporting => lock.write_all(b"\x1B[?1000l")?,
+            Cmd::EnableSgrCoords => lock.write_all(b"\x1B[?1006h")?,
+            Cmd::DisableSgrCoords => lock.write_all(b"\x1B[?1006l")?,
+        }
+        lock.flush()
     }
 
     /// Get the terminal size
-    pub fn get_size(&self) -> io::Result<(usize, usize)> {
+    pub(crate) fn get_size(&self) -> io::Result<(usize, usize)> {
         let mut ws = libc::winsize {
             ws_row: 0,
             ws_col: 0,

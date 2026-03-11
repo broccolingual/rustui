@@ -9,7 +9,7 @@ use std::time;
 use crate::Framebuffer;
 
 /// Represents a render thread for rendering frames.
-pub struct RenderThread {
+pub(crate) struct RenderThread {
     /// The thread handle for the render thread.
     handle: Option<thread::JoinHandle<()>>,
     /// The stop signal sender for the render thread.
@@ -26,7 +26,7 @@ impl RenderThread {
     /// * `rendering_rate` - The rate at which to render frames.
     ///
     /// Returns `RenderThread` instance.
-    pub fn new(
+    pub(crate) fn new(
         front_fb: Arc<Mutex<Framebuffer>>,
         back_fb: Arc<Mutex<Framebuffer>>,
         rendering_rate: time::Duration,
@@ -64,9 +64,7 @@ impl RenderThread {
                         }
                     }
                     Err(TryLockError::WouldBlock) => {
-                        // back_fb is locked by draw(); retry immediately without
-                        // resetting the frame timer so the next iteration does not
-                        // sleep a full rendering_rate before retrying.
+                        thread::yield_now(); // Yield to other threads if the back framebuffer is currently locked
                         continue;
                     }
                     Err(_) => {
@@ -98,14 +96,14 @@ impl RenderThread {
     /// Try to receive the current FPS
     ///
     /// Returns the current FPS if available, or an error if not.
-    pub fn try_recv_fps(&self) -> Result<f64, mpsc::TryRecvError> {
+    pub(crate) fn try_recv_fps(&self) -> Result<f64, mpsc::TryRecvError> {
         self.fps_rx.try_recv()
     }
 
     /// Stop the render thread
     ///
     /// Returns `Ok(())` if the thread was stopped successfully, or an error if it failed.
-    pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub(crate) fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(tx) = self.stop_signal.take() {
             tx.send(())?; // Send stop signal
         }
