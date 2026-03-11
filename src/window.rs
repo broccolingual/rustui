@@ -173,7 +173,7 @@ impl Drop for Window {
 }
 
 /// A listener for window size changes
-pub struct WindowSizeListener {
+struct WindowSizeListener {
     /// The thread handle for the listener
     handle: Option<thread::JoinHandle<()>>,
     /// The stop signal for the listener
@@ -188,7 +188,7 @@ impl WindowSizeListener {
     /// * `rate`: The rate at which to check for window size changes
     ///
     /// Returns `WindowSizeListener` instance.
-    pub fn new(terminal: Terminal, rate: Duration) -> Self {
+    fn new(terminal: Terminal, rate: Duration) -> Self {
         #[allow(clippy::type_complexity)]
         let (size_tx, size_rx): (SyncSender<(usize, usize)>, Receiver<(usize, usize)>) =
             mpsc::sync_channel(1);
@@ -227,14 +227,14 @@ impl WindowSizeListener {
     /// Try to receive a window size change event
     ///
     /// Returns the new window size if available, or an error if not.
-    pub fn try_recv(&self) -> Result<(usize, usize), mpsc::TryRecvError> {
+    fn try_recv(&self) -> Result<(usize, usize), mpsc::TryRecvError> {
         self.size_rx.try_recv()
     }
 
     /// Stop the window size listener
     ///
     /// Returns `Ok(())` if the listener was stopped successfully, or an error if it failed.
-    pub fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    fn stop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(tx) = self.stop_signal.take() {
             tx.send(())?; // Send stop signal
         }

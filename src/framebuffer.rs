@@ -3,26 +3,26 @@ use std::io::{self, Write};
 
 use crate::{Attr, Color};
 
-const CHUNK_SIZE: usize = 1024;
+const CHUNK_SIZE: usize = 256;
 
 /// Represents a single cell in the framebuffer.
 #[derive(Clone, Copy, PartialEq, Debug)]
 struct Cell {
     /// The character displayed in the cell.
-    pub ch: char,
+    ch: char,
     /// Text attributes (bold, italic, underline, etc.)
-    pub attrs: Attr,
+    attrs: Attr,
     /// Foreground color as RGB values (0-255 each)
-    pub fg: Color,
+    fg: Color,
     /// Background color as RGB values (0-255 each)
-    pub bg: Color,
+    bg: Color,
 }
 
 impl Cell {
     /// Create a new cell with default values.
     ///
     /// Returns a `Cell` instance with default attributes and colors.
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             ch: ' ',
             attrs: Attr::default(),
@@ -52,7 +52,7 @@ pub struct Framebuffer {
     pub width: usize,
     /// The height of the framebuffer.
     pub height: usize,
-    buffer: Vec<Cell>,
+    buffer: Box<[Cell]>,
 }
 
 impl Framebuffer {
@@ -63,7 +63,7 @@ impl Framebuffer {
     ///
     /// Returns a new `Framebuffer` instance.
     pub fn new(width: usize, height: usize) -> Self {
-        let buffer = vec![Cell::default(); width * height];
+        let buffer = vec![Cell::default(); width * height].into_boxed_slice();
         Self {
             width,
             height,

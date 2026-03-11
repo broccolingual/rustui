@@ -18,10 +18,8 @@ The library is organized into several core modules:
 - [`framebuffer`] - Character grid for efficient rendering
 - [`window`] - High-level windowing abstraction with thread management
 - [`input`] - Non-blocking keyboard and mouse input handling
-- [`term`] - Terminal colors, attributes, and ANSI escape sequences
 - [`attr`] - Text attributes and styling
 - [`color`] - Color manipulation and conversion utilities
-- [`render`] - Rendering utilities and drawing primitives
 
 ## Performance
 
@@ -43,22 +41,22 @@ pub mod framebuffer;
 /// A module for handling user input.
 #[cfg(target_os = "linux")]
 pub mod input;
-/// A module for a rendering context.
-#[cfg(target_os = "linux")]
-pub mod render;
-/// A module for handling terminal colors and attributes.
-#[cfg(target_os = "linux")]
-pub mod term;
 /// A module for handling windowing.
 #[cfg(target_os = "linux")]
 pub mod window;
 
-mod macros;
+/// A module for a rendering context.
+#[cfg(target_os = "linux")]
+pub(crate) mod render;
+/// A module for handling terminal colors and attributes.
+#[cfg(target_os = "linux")]
+pub(crate) mod term;
 
 pub use attr::*;
 pub use color::*;
 pub use framebuffer::*;
 pub use input::*;
-pub use render::*;
-pub use term::*;
 pub use window::*;
+
+pub(crate) use render::*;
+pub(crate) use term::*;
