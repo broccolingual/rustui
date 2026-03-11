@@ -3,7 +3,7 @@ use std::io::{self, Write};
 
 use crate::{Attr, Color};
 
-const CHUNK_SIZE: usize = 256;
+const CHUNK_SIZE: usize = 1024;
 
 /// Represents a single cell in the framebuffer.
 #[derive(Clone, Copy, PartialEq, Debug)]
