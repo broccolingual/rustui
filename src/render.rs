@@ -65,6 +65,7 @@ impl RenderThread {
                     }
                     Err(TryLockError::WouldBlock) => {
                         thread::yield_now(); // Yield to other threads if the back framebuffer is currently locked
+                        continue;
                     }
                     Err(_) => {
                         break;
