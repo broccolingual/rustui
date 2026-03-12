@@ -1,6 +1,6 @@
 [package]
 name = "rustui"
-version = "0.3.6"
+version = "0.3.7"
 authors = ["Broccolingual"]
 description = "Terminal UI library for Linux and Unix-like systems"
 repository = "https://github.com/broccolingual/rustui"
